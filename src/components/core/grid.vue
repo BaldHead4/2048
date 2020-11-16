@@ -1,9 +1,11 @@
 <template>
   <div
-    :class="`status${block.status > 2048 ? 'Super' : block.status}`"
+    :class="`${block.merged ? 'merged' : 'created'} status${
+      block.status > 2048 ? 'Super' : block.status
+    }`"
     :style="`
-    left: ${block.position.x}px;
-    top: ${block.position.y}px;
+    left: ${block.position.x * (106.25 + 15) + 15}px;
+    top: ${block.position.y * (110.25 + 15) + 15}px;
     `"
   >
     {{ block.status ? block.status : "" }}
@@ -37,6 +39,51 @@ div {
   }
   color: #776e65;
   border-radius: 3px;
+}
+
+@keyframes merge {
+  0% {
+    -webkit-transform: scale(0);
+    -moz-transform: scale(0);
+    transform: scale(0);
+  }
+  50% {
+    -webkit-transform: scale(1.2);
+    -moz-transform: scale(1.2);
+    transform: scale(1.2);
+  }
+  100% {
+    -webkit-transform: scale(1);
+    -moz-transform: scale(1);
+    transform: scale(1);
+  }
+}
+
+@keyframes create {
+  0% {
+    -webkit-transform: scale(0);
+    -moz-transform: scale(0);
+    transform: scale(0);
+  }
+  100% {
+    -webkit-transform: scale(1);
+    -moz-transform: scale(1);
+    transform: scale(1);
+  }
+}
+
+.created {
+  animation: {
+    name: create;
+    duration: 0.2s;
+  }
+}
+
+.merged {
+  animation: {
+    name: merge;
+    duration: 0.2s;
+  }
 }
 
 .status2 {
@@ -85,7 +132,6 @@ div {
   font-size: 45px;
 }
 
-
 .status512 {
   color: #f9f6f2;
   background: #edc850;
@@ -93,7 +139,6 @@ div {
     inset 0 0 0 1px rgba(255, 255, 255, 0.2381);
   font-size: 45px;
 }
-
 
 .status1024 {
   color: #f9f6f2;
@@ -103,7 +148,6 @@ div {
   font-size: 35px;
 }
 
-
 .status2048 {
   color: #f9f6f2;
   background: #edc22e;
@@ -111,7 +155,6 @@ div {
     inset 0 0 0 1px rgba(255, 255, 255, 0.33333);
   font-size: 35px;
 }
-
 
 .statusSuper {
   color: #f9f6f2;
@@ -144,5 +187,4 @@ div {
     font-size: 10px;
   }
 }
-
 </style>

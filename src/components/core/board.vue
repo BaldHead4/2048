@@ -37,6 +37,7 @@ interface block {
     x: number;
     y: number;
   };
+  merged: boolean;
   status: number;
   id: number;
 }
@@ -47,11 +48,9 @@ export default {
     const blocks = ref<block[]>([]);
     function createBlock(x: number, y: number, status: number) {
       blocks.value.push({
-        position: {
-          x: x * (106.25 + 15) + 15,
-          y: y * (110.25 + 15) + 15,
-        },
-        status: status,
+        status,
+        position: { x, y },
+        merged: false,
         id: blocks.value.length,
       });
     }
@@ -68,9 +67,10 @@ export default {
       blocks.value = [
         {
           position: {
-            x: 3 * (106.25 + 15) + 15,
-            y: 3 * (110.25 + 15) + 15,
+            x: 3,
+            y: 3,
           },
+          merged: false,
           status: 64,
           id: 0,
         },
