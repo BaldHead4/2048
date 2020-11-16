@@ -11,8 +11,8 @@
     }px;
     top: ${
       clientWidth > 500
-        ? block.position.y * (110.25 + 15) + 15
-        : block.position.y * (62 + 10) + 10
+        ? block.position.y * (106.25 + 15) + 15
+        : block.position.y * (58 + 10) + 10
     }px;
     `"
   >

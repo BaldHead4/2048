@@ -95,6 +95,7 @@ $desktopGap: 15px;
 $mobileGap: 10px;
 
 .board {
+  box-sizing: border-box;
   background: #BBADA0;
   position: relative;
   margin: 0 auto;
@@ -123,6 +124,7 @@ $mobileGap: 10px;
 
     > .row {
       margin-bottom: $mobileGap;
+      height: $mobileGridSize;
 
       .cell {
         height: $mobileGridSize;
@@ -141,6 +143,7 @@ $mobileGap: 10px;
 
     > .row {
       margin-bottom: $desktopGap;
+      height: $desktopGridSize;
 
       .cell {
         height: $desktopGridSize;
