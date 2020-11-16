@@ -4,8 +4,16 @@
       block.status > 2048 ? 'Super' : block.status
     }`"
     :style="`
-    left: ${block.position.x * (106.25 + 15) + 15}px;
-    top: ${block.position.y * (110.25 + 15) + 15}px;
+    left: ${
+      clientWidth > 500
+        ? block.position.x * (106.25 + 15) + 15
+        : block.position.x * (58 + 10) + 9
+    }px;
+    top: ${
+      clientWidth > 500
+        ? block.position.y * (110.25 + 15) + 15
+        : block.position.y * (62 + 10) + 10
+    }px;
     `"
   >
     {{ block.status ? block.status : "" }}
@@ -13,32 +21,52 @@
 </template>
 
 <script lang="ts">
-import { ref } from "vue";
+import { inject, ref } from "vue";
 export default {
   props: {
     block: Object,
   },
-  setup(props) {},
+  setup() {
+    const clientWidth = inject("clientWidth");
+
+    return {
+      clientWidth,
+    };
+  },
 };
 </script>
 
 <style lang="scss" scoped>
-$blockSize: 106.25px;
+$desktopGridSize: 106.25px;
+$mobileGridSize: 58px;
 
 div {
   display: inline-block;
   position: absolute;
-  width: $blockSize;
-  height: $blockSize;
   transition: all 0.3s ease-in-out;
   text-align: center;
-  line-height: $blockSize;
   font: {
     size: 45px;
     weight: 700;
   }
   color: #776e65;
   border-radius: 3px;
+}
+
+@media screen and (min-width: 501px) {
+  div {
+    width: $desktopGridSize;
+    height: $desktopGridSize;
+    line-height: $desktopGridSize;
+  }
+}
+
+@media screen and(max-width: 500px) {
+  div {
+    width: $mobileGridSize;
+    height: $mobileGridSize;
+    line-height: $mobileGridSize;
+  }
 }
 
 @keyframes merge {

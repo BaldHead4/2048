@@ -63,6 +63,8 @@ export default {
       32
     );
 
+
+
     setTimeout(() => {
       blocks.value = [
         {
@@ -85,22 +87,20 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$boardSize: 500px;
-$gridSize: 106.25px;
-$gap: 15px;
+$desktopBoardSize: 500px;
+$mobileBoardSize: 280px;
+$desktopGridSize: 106.25px;
+$mobileGridSize: 58px;
+$desktopGap: 15px;
+$mobileGap: 10px;
 
 .board {
-  //   box-sizing: border-box;
-  padding-top: $gap;
   background: #BBADA0;
   position: relative;
   margin: 0 auto;
   border-radius: 6px;
-  width: $boardSize;
-  height: $boardSize;
 
   > .row {
-    margin-bottom: $gap;
     display: block;
 
     :first-child {
@@ -109,11 +109,44 @@ $gap: 15px;
 
     .cell {
       background: rgba(238, 228, 218, 0.35);
-      height: $gridSize;
-      width: $gridSize;
       display: inline-block;
-      margin-left: $gap;
       border-radius: 3px;
+    }
+  }
+}
+
+@media screen and (max-width: 500px) {
+  .board {
+    padding-top: $mobileGap;
+    width: $mobileBoardSize;
+    height: $mobileBoardSize;
+
+    > .row {
+      margin-bottom: $mobileGap;
+
+      .cell {
+        height: $mobileGridSize;
+        width: $mobileGridSize;
+        margin-left: $mobileGap;
+      }
+    }
+  }
+}
+
+@media screen and (min-width: 501px) {
+  .board {
+    padding-top: $desktopGap;
+    width: $desktopBoardSize;
+    height: $desktopBoardSize;
+
+    > .row {
+      margin-bottom: $desktopGap;
+
+      .cell {
+        height: $desktopGridSize;
+        width: $desktopGridSize;
+        margin-left: $desktopGap;
+      }
     }
   }
 }
