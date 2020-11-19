@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts">
-import { ref, reactive } from "vue";
+import { ref, Ref, reactive, watch } from "vue";
 import grid from "./grid.vue";
 
 interface block {
@@ -44,7 +44,12 @@ interface block {
 
 export default {
   components: { grid },
-  setup() {
+  props: {
+    currentScore: Number,
+    highestScore: Number,
+  },
+  setup(props, ctx) {
+    let score = 20;
     const blocks = ref<block[]>([]);
     function createBlock(x: number, y: number, status: number) {
       blocks.value.push({
@@ -54,30 +59,25 @@ export default {
         id: blocks.value.length,
       });
     }
-
-    createBlock(
-      //   Math.floor(Math.random() * 4),
-      //   Math.floor(Math.random() * 4),
-      1,
-      3,
-      32
+    watch(
+      blocks,
+      () => {
+        if (props.currentScore !== undefined)
+          ctx.emit("update:currentScore", score);
+        localStorage.blocks = JSON.stringify(blocks.value);
+      },
+      { deep: true }
     );
 
-
-
-    setTimeout(() => {
-      blocks.value = [
-        {
-          position: {
-            x: 3,
-            y: 3,
-          },
-          merged: false,
-          status: 64,
-          id: 0,
-        },
-      ];
-    }, 1000);
+    if (localStorage.blocks) {
+      blocks.value = <block[]>JSON.parse(localStorage.blocks);
+    } else {
+      createBlock(
+        Math.floor(Math.random() * 4),
+        Math.floor(Math.random() * 4),
+        32
+      );
+    }
 
     return {
       blocks,
@@ -96,7 +96,7 @@ $mobileGap: 10px;
 
 .board {
   box-sizing: border-box;
-  background: #BBADA0;
+  background: #bbada0;
   position: relative;
   margin: 0 auto;
   border-radius: 6px;
