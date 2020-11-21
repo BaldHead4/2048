@@ -32,57 +32,11 @@
 import { ref, Ref, reactive, watch } from "vue";
 import grid from "./grid.vue";
 
-interface block {
-  position: {
-    x: number;
-    y: number;
-  };
-  merged: boolean;
-  status: number;
-  id: number;
-}
-
 export default {
   components: { grid },
   props: {
-    currentScore: Number,
-    highestScore: Number,
-  },
-  setup(props, ctx) {
-    let score = 20;
-    const blocks = ref<block[]>([]);
-    function createBlock(x: number, y: number, status: number) {
-      blocks.value.push({
-        status,
-        position: { x, y },
-        merged: false,
-        id: blocks.value.length,
-      });
-    }
-    watch(
-      blocks,
-      () => {
-        if (props.currentScore !== undefined)
-          ctx.emit("update:currentScore", score);
-        localStorage.blocks = JSON.stringify(blocks.value);
-      },
-      { deep: true }
-    );
-
-    if (localStorage.blocks) {
-      blocks.value = <block[]>JSON.parse(localStorage.blocks);
-    } else {
-      createBlock(
-        Math.floor(Math.random() * 4),
-        Math.floor(Math.random() * 4),
-        32
-      );
-    }
-
-    return {
-      blocks,
-    };
-  },
+    blocks: Object
+  }
 };
 </script>
 
@@ -94,8 +48,9 @@ $mobileGridSize: 58px;
 $desktopGap: 15px;
 $mobileGap: 10px;
 
+
 .board {
-  box-sizing: border-box;
+  box-sizing: border-box !important;
   background: #bbada0;
   position: relative;
   margin: 0 auto;

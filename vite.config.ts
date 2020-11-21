@@ -1,10 +1,13 @@
 // @ts-ignore
-import { UserConfig } from 'vite'
+import { UserConfig } from "vite";
 
 const config: UserConfig = {
-    optimizeDeps: {
-        include: ['@ant-design/colors','@ant-design-vue/use'],
-    },
-}
+  optimizeDeps: {
+    include: [
+      "@ant-design/colors",
+      "@ant-design-vue/use",
+    ],
+  },
+};
 
-export default config
+export default config;

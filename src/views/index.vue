@@ -17,51 +17,146 @@
             <label for="hard">困难</label>
           </div>
           <div class="btn reset">新游戏</div>
-          <div class="btn online">多人游戏</div>
+          <div class="btn online" @click="modalVisible = true">多人游戏</div>
         </div>
       </div>
-      <board v-model:currentScore="currentScore" :highestScore="highestScore" />
+      <board :blocks="blocks" />
     </div>
+    <a-modal
+      title="信息确认"
+      v-model:visible="modalVisible"
+      :confirm-loading="confirmLoading"
+      @ok="getOnline"
+      @cancel="modalVisible = false"
+      cancelText="取消"
+      okText="确定"
+    >
+      <a-form :model="onlineInfo">
+        <a-form-item label="昵称：">
+          <a-input
+            v-model:value="onlineInfo.username"
+            placeholder="请输入您的昵称"
+          >
+            <template #prefix><user-outlined type="user" /></template>
+          </a-input>
+        </a-form-item>
+        <a-form-item label="难度：">
+          <a-radio-group
+            v-model:value="onlineInfo.difficulty"
+            button-style="solid"
+          >
+            <a-radio-button :value="1"> 正常 </a-radio-button>
+            <a-radio-button :value="2"> 困难 </a-radio-button>
+          </a-radio-group>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script lang="ts">
 import { reactive, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import board from "../components/core/board.vue";
+import { UserOutlined } from "@ant-design/icons-vue";
+import md5 from "js-md5";
+import { block, position } from "../components/types";
 export default {
-  components: { board },
+  components: { board, UserOutlined },
   name: "index",
   setup() {
+    const router = useRouter();
+
+    //TODO:根据难度改变游戏逻辑
+    const diffculty = ref(1);
+    watch(diffculty, () => {
+      console.log(diffculty.value);
+    });
+
+    //对话框
+    const onlineInfo = reactive({
+      id: "",
+      username: "",
+      difficulty: 1,
+    });
+    const modalVisible = ref(false);
+    const confirmLoading = ref(false);
+
+    //进入多人游戏
+    function getOnline(): void {
+      confirmLoading.value = true;
+      setTimeout(() => {
+        for (let i = 0; i < 4; i++) localStorage[`player${i}`] = JSON.stringify({
+          id: generateID(),
+          username: Math.random().toFixed(5)
+        });
+        confirmLoading.value = false;
+        router.push("/online");
+      }, 1000);
+    }
+
+    //用户id
+    function generateID(): string {
+      return (
+        md5(navigator.userAgent) + Number(new Date()) + md5(Math.random() + "")
+      );
+    }
+    if (!localStorage.id) localStorage.id = generateID();
+    onlineInfo.id = <string>localStorage.id;
+
+    //游戏逻辑
+    const blocks = ref<block[]>([]);
     const currentScore = ref(0);
     const highestScore = ref(0);
-    const diffculty = ref(1);
+    function createBlock(x: position, y: position, status: number) {
+      blocks.value.push({
+        status,
+        position: { x, y },
+        merged: false,
+        id: blocks.value.length,
+      });
+    }
 
-    if (
-      localStorage.currentScore &&
-      typeof localStorage.currentScore === "number"
-    )
-      currentScore.value = localStorage.currentScore;
+    //缓存对局状态
+    watch(
+      blocks,
+      () => {
+        localStorage.blocks = JSON.stringify(blocks.value);
+      },
+      { deep: true }
+    );
 
-    if (
-      localStorage.highestScore &&
-      typeof localStorage.highestScore === "number"
-    )
-      highestScore.value = localStorage.highestScore;
+    //读取缓存数据
+    if (localStorage.blocks) {
+      blocks.value = <block[]>JSON.parse(localStorage.blocks);
+    } else {
+      createBlock(
+        <position>Math.floor(Math.random() * 4),
+        <position>Math.floor(Math.random() * 4),
+        32
+      );
+    }
+    if (localStorage.currentScore)
+      currentScore.value = parseInt(localStorage.currentScore);
+    if (localStorage.highestScore)
+      highestScore.value = parseInt(localStorage.highestScore);
 
+    //刷新最高分以及缓存
     watch(currentScore, () => {
       highestScore.value = Math.max(currentScore.value, highestScore.value);
       localStorage.currentScore = currentScore.value;
       localStorage.highestScore = highestScore.value;
     });
 
-    watch(diffculty, () => {
-      console.log(diffculty.value);
-    });
-
     return {
       currentScore,
       highestScore,
+      blocks,
       diffculty,
+      getOnline,
+      modalVisible,
+      confirmLoading,
+      onlineInfo,
     };
   },
 };
