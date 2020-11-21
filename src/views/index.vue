@@ -1,5 +1,5 @@
 <template>
-  <div class="wrapper">
+  <div :class="`wrapper  ${clientWidth >= 500 ? 'desktopLayout' : 'mobileLayout'}`">
     <div class="container">
       <div class="head">
         <div class="first">
@@ -20,7 +20,7 @@
           <div class="btn online" @click="modalVisible = true">多人游戏</div>
         </div>
       </div>
-      <board :blocks="blocks" />
+      <board :blocks="blocks" :width="500" />
     </div>
     <a-modal
       title="信息确认"
@@ -55,7 +55,7 @@
 </template>
 
 <script lang="ts">
-import { reactive, ref, watch } from "vue";
+import { inject, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import board from "../components/core/board.vue";
 import { UserOutlined } from "@ant-design/icons-vue";
@@ -86,10 +86,11 @@ export default {
     function getOnline(): void {
       confirmLoading.value = true;
       setTimeout(() => {
-        for (let i = 0; i < 4; i++) localStorage[`player${i}`] = JSON.stringify({
-          id: generateID(),
-          username: Math.random().toFixed(5)
-        });
+        for (let i = 0; i < 4; i++)
+          localStorage[`player${i}`] = JSON.stringify({
+            id: generateID(),
+            username: Math.random().toFixed(5),
+          });
         confirmLoading.value = false;
         router.push("/online");
       }, 1000);
@@ -148,6 +149,8 @@ export default {
       localStorage.highestScore = highestScore.value;
     });
 
+    const clientWidth = inject("clientWidth");
+
     return {
       currentScore,
       highestScore,
@@ -157,6 +160,7 @@ export default {
       modalVisible,
       confirmLoading,
       onlineInfo,
+      clientWidth,
     };
   },
 };
@@ -278,98 +282,94 @@ export default {
   }
 }
 
-@media screen and (max-width: 500px) {
-  .wrapper {
-    min-height: 490px;
-    .container {
-      width: 280px;
-      .head {
-        margin-top: 10px;
-        .first {
-          height: 60px;
+.mobileLayout {
+  min-height: 490px;
+  .container {
+    width: 280px;
+    .head {
+      margin-top: 10px;
+      .first {
+        height: 60px;
 
-          .title {
-            line-height: 60px;
-            font-size: 40px;
-          }
+        .title {
+          line-height: 60px;
+          font-size: 40px;
+        }
 
-          .scores {
-            .scoreboard {
-              &::after {
-                position: absolute;
-                width: 100%;
-                top: 10px;
-                left: 0;
-                text-transform: uppercase;
-                font-size: 13px;
-                line-height: 13px;
-                text-align: center;
-                color: #eee4da;
-              }
+        .scores {
+          .scoreboard {
+            &::after {
+              position: absolute;
+              width: 100%;
+              top: 10px;
+              left: 0;
+              text-transform: uppercase;
+              font-size: 13px;
+              line-height: 13px;
+              text-align: center;
+              color: #eee4da;
             }
           }
         }
+      }
 
-        .operations {
-          height: 100px;
-          .btn {
-            top: 10px;
-            transform: translateY(0);
-          }
-          .checkbox {
-            line-height: 40px;
-            top: 55px;
-            left: 50%;
-            height: 40px;
-            transform: translateX(-50%);
-          }
+      .operations {
+        height: 100px;
+        .btn {
+          top: 10px;
+          transform: translateY(0);
+        }
+        .checkbox {
+          line-height: 40px;
+          top: 55px;
+          left: 50%;
+          height: 40px;
+          transform: translateX(-50%);
         }
       }
     }
   }
 }
 
-@media screen and (min-width: 501px) {
-  .wrapper {
-    min-height: 700px;
-    .container {
-      width: 500px;
-      .head {
-        margin-top: 20px;
-        .first {
-          height: 66px;
+.desktopLayout {
+  min-height: 700px;
+  .container {
+    width: 500px;
+    .head {
+      margin-top: 20px;
+      .first {
+        height: 66px;
 
-          .title {
-            line-height: 66px;
-            font-size: 74px;
-          }
+        .title {
+          line-height: 66px;
+          font-size: 74px;
+        }
 
-          .scores {
-            .scoreboard {
-              &::after {
-                position: absolute;
-                width: 100%;
-                top: 10px;
-                left: 0;
-                text-transform: uppercase;
-                font-size: 13px;
-                line-height: 13px;
-                text-align: center;
-                color: #eee4da;
-              }
+        .scores {
+          .scoreboard {
+            &::after {
+              position: absolute;
+              width: 100%;
+              top: 10px;
+              left: 0;
+              text-transform: uppercase;
+              font-size: 13px;
+              line-height: 13px;
+              text-align: center;
+              color: #eee4da;
             }
           }
         }
+      }
 
-        .operations {
-          height: 80px;
-          .checkbox {
-            line-height: 80px;
+      .operations {
+        height: 80px;
+        .checkbox {
+          line-height: 80px;
 
-            left: 50%;
-            top: 0;
-            transform: translate(-50%, 0);
-          }
+          left: 50%;
+          top: 0;
+          transform: translate(-50%, 0);
         }
       }
     }

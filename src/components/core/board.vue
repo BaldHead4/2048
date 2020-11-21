@@ -1,5 +1,5 @@
 <template>
-  <div class="board">
+  <div :class="`board ${clientWidth >= width ? 'desktop' : 'mobile'}`">
     <div class="row">
       <div class="cell" />
       <div class="cell" />
@@ -24,19 +24,32 @@
       <div class="cell" />
       <div class="cell" />
     </div>
-    <grid v-for="block in blocks" :block="block" :key="block.id" />
+    <grid
+      v-for="block in blocks"
+      :block="block"
+      :key="block.id"
+      :width="width"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { ref, Ref, reactive, watch } from "vue";
+import { ref, Ref, reactive, watch, inject } from "vue";
 import grid from "./grid.vue";
 
 export default {
   components: { grid },
   props: {
-    blocks: Object
-  }
+    blocks: Object,
+    width: Number,
+  },
+  setup() {
+    const clientWidth = inject("clientWidth");
+
+    return {
+      clientWidth,
+    };
+  },
 };
 </script>
 
@@ -47,7 +60,6 @@ $desktopGridSize: 106.25px;
 $mobileGridSize: 58px;
 $desktopGap: 15px;
 $mobileGap: 10px;
-
 
 .board {
   box-sizing: border-box !important;
@@ -71,40 +83,36 @@ $mobileGap: 10px;
   }
 }
 
-@media screen and (max-width: 500px) {
-  .board {
-    padding-top: $mobileGap;
-    width: $mobileBoardSize;
-    height: $mobileBoardSize;
+.mobile {
+  padding-top: $mobileGap;
+  width: $mobileBoardSize;
+  height: $mobileBoardSize;
 
-    > .row {
-      margin-bottom: $mobileGap;
+  > .row {
+    margin-bottom: $mobileGap;
+    height: $mobileGridSize;
+
+    .cell {
       height: $mobileGridSize;
-
-      .cell {
-        height: $mobileGridSize;
-        width: $mobileGridSize;
-        margin-left: $mobileGap;
-      }
+      width: $mobileGridSize;
+      margin-left: $mobileGap;
     }
   }
 }
 
-@media screen and (min-width: 501px) {
-  .board {
-    padding-top: $desktopGap;
-    width: $desktopBoardSize;
-    height: $desktopBoardSize;
+.desktop {
+  padding-top: $desktopGap;
+  width: $desktopBoardSize;
+  height: $desktopBoardSize;
 
-    > .row {
-      margin-bottom: $desktopGap;
+  > .row {
+    margin-bottom: $desktopGap;
+    height: $desktopGridSize;
+
+    .cell {
       height: $desktopGridSize;
-
-      .cell {
-        height: $desktopGridSize;
-        width: $desktopGridSize;
-        margin-left: $desktopGap;
-      }
+      width: $desktopGridSize;
+      margin-left: $desktopGap;
     }
   }
 }

@@ -1,38 +1,40 @@
 <template>
   <div class="wrapper">
-    <div class="left">
-      <div class="scoreboard">
-        <div class="title">计分板</div>
-        <div class="list">
-          <div
-            :class="{ player: true, self: index === 0 }"
-            v-for="(player, index) in players"
-            :key="player.id"
-          >
-            <span class="rank">{{ index }}.</span>
-            <span class="username">{{ player.username }}</span>
-            <span class="score">{{ player.score }}</span>
+    <div class="gui">
+      <div class="left">
+        <div class="scoreboard">
+          <div class="title">计分板</div>
+          <div class="list">
+            <div
+              :class="{ player: true, self: index === 0 }"
+              v-for="(player, index) in players"
+              :key="player.id"
+            >
+              <span class="rank">{{ index }}.</span>
+              <span class="username">{{ player.username }}</span>
+              <span class="score">{{ player.score }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="container">
-      <div class="head">
-        <div class="title">2048</div>
-        <div class="btn quit" @click="$router.push('/')">离开游戏</div>
+      <div class="container">
+        <div class="head">
+          <div class="title">2048</div>
+          <div class="btn quit" @click="$router.push('/')">离开游戏</div>
+        </div>
+        <board :width="1000" :players="players[0].status" />
       </div>
-      <board :players="players[0].status" />
-    </div>
-    <div class="right">
-      <board :blocks="players[1].status" />
-      <board class="mid" :blocks="players[2].status" />
-      <board :blocks="players[3].status" />
+      <div class="right">
+        <board :width="1000" :blocks="players[1].status" />
+        <board :width="1000" class="mid" :blocks="players[2].status" />
+        <board :width="1000" :blocks="players[3].status" />
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { reactive, ref, watch } from "vue";
+import { inject, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import board from "../components/core/board.vue";
 import { block, playerIndex, players, position } from "../components/types";
@@ -92,6 +94,7 @@ export default {
         score: 0,
       };
     }
+
 
     //TODO:排名变化时的动画
 
@@ -161,95 +164,103 @@ export default {
   }
 }
 
-@media screen and (max-width: 500px) {
+@media screen and (max-width: 999.9px) {
   .wrapper {
     display: flow-root;
     min-height: 650px;
     min-width: 320px;
-    .container {
-      margin: auto;
-      width: 280px;
-      .head {
-        height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
-        .title {
-          line-height: 60px;
-          font-size: 40px;
-        }
-      }
-    }
+    .gui {
+      flex: 1;
 
-    .left {
-      margin-top: 20px;
-
-      .scoreboard {
-        background: rgb(187, 173, 160);
-        border-radius: 5px;
+      .container {
         margin: auto;
-        width: 250px;
-        height: 150px;
+        width: 280px;
+        .head {
+          height: 60px;
 
-        .title {
-          font: {
-            size: 20px;
-            weight: 700;
-          }
-          border-bottom: 1px solid rgb(87, 69, 53);
-        }
-
-        .list {
-          text-align: left;
-
-          .player {
-            padding: 0 10px;
-            transition: all ease-in-out 0.2s;
-            position: relative;
-            border-radius: 3px;
-            .rank {
-              font: {
-                size: 18px;
-                weight: 700;
-              }
-
-              margin-right: 10px;
-            }
-            .username {
-              font-size: 15px;
-              position: absolute;
-              left: 35px;
-              bottom: 1px;
-            }
-            .score {
-              color: #fff;
-              font-size: 16px;
-              position: absolute;
-              right: 10px;
-              bottom: 1px;
-            }
-          }
-
-          .self {
-            background: #cdc1b4;
+          .title {
+            line-height: 60px;
+            font-size: 40px;
           }
         }
       }
-    }
 
-    .right {
-      height: 100px;
+      .left {
+        margin-top: 20px;
 
-      .board {
-        display: inline-block;
-        transform: scale(0.3);
-        margin: -90px;
+        .scoreboard {
+          background: rgb(187, 173, 160);
+          border-radius: 5px;
+          margin: auto;
+          width: 250px;
+          height: 150px;
+
+          .title {
+            font: {
+              size: 20px;
+              weight: 700;
+            }
+            border-bottom: 1px solid rgb(87, 69, 53);
+          }
+
+          .list {
+            text-align: left;
+
+            .player {
+              padding: 0 10px;
+              transition: all ease-in-out 0.2s;
+              position: relative;
+              border-radius: 3px;
+              .rank {
+                font: {
+                  size: 18px;
+                  weight: 700;
+                }
+
+                margin-right: 10px;
+              }
+              .username {
+                font-size: 15px;
+                position: absolute;
+                left: 35px;
+                bottom: 1px;
+              }
+              .score {
+                color: #fff;
+                font-size: 16px;
+                position: absolute;
+                right: 10px;
+                bottom: 1px;
+              }
+            }
+
+            .self {
+              background: #cdc1b4;
+            }
+          }
+        }
+      }
+
+      .right {
+        height: 100px;
+
+        .board {
+          display: inline-block;
+          transform: scale(0.3);
+          margin: -90px;
+        }
       }
     }
   }
+
 }
 
-@media screen and (min-width: 501px) {
+@media screen and (min-width: 1000px) {
   .wrapper {
-    min-width: 1000px;
     min-height: 700px;
     .container {
       width: 500px;

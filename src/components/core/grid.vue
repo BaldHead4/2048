@@ -1,9 +1,10 @@
 <template>
-  <div
-    :class="`${block.merged ? 'merged' : 'created'} status${
-      block.status > 2048 ? 'Super' : block.status
-    }`"
-    :style="`
+  <div :class="`wrap ${clientWidth >= width ? 'desktop' : 'mobile'}`">
+    <div
+      :class="`grid ${block.merged ? 'merged' : 'created'} status${
+        block.status > 2048 ? 'Super' : block.status
+      }`"
+      :style="`
     left: ${
       clientWidth > 500
         ? block.position.x * (106.25 + 15) + 15
@@ -15,8 +16,9 @@
         : block.position.y * (58 + 10) + 10
     }px;
     `"
-  >
-    {{ block.status ? block.status : "" }}
+    >
+      {{ block.status ? block.status : "" }}
+    </div>
   </div>
 </template>
 
@@ -25,6 +27,7 @@ import { inject, ref } from "vue";
 export default {
   props: {
     block: Object,
+    width: Number,
   },
   setup() {
     const clientWidth = inject("clientWidth");
@@ -40,7 +43,13 @@ export default {
 $desktopGridSize: 106.25px;
 $mobileGridSize: 58px;
 
-div {
+
+.wrap {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.grid {
   display: inline-block;
   position: absolute;
   transition: all 0.3s ease-in-out;
@@ -51,22 +60,6 @@ div {
   }
   color: #776e65;
   border-radius: 3px;
-}
-
-@media screen and (min-width: 501px) {
-  div {
-    width: $desktopGridSize;
-    height: $desktopGridSize;
-    line-height: $desktopGridSize;
-  }
-}
-
-@media screen and(max-width: 500px) {
-  div {
-    width: $mobileGridSize;
-    height: $mobileGridSize;
-    line-height: $mobileGridSize;
-  }
 }
 
 @keyframes merge {
@@ -190,7 +183,21 @@ div {
   font-size: 30px;
 }
 
-@media screen and (max-width: 520px) {
+.desktop {
+  .grid {
+    width: $desktopGridSize;
+    height: $desktopGridSize;
+    line-height: $desktopGridSize;
+  }
+}
+
+.mobile {
+  .grid {
+    width: $mobileGridSize;
+    height: $mobileGridSize;
+    line-height: $mobileGridSize;
+  }
+
   .status128 {
     font-size: 25px;
   }
