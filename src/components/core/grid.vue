@@ -43,7 +43,6 @@ export default {
 $desktopGridSize: 106.25px;
 $mobileGridSize: 58px;
 
-
 .wrap {
   width: 0 !important;
   height: 0 !important;
@@ -52,7 +51,7 @@ $mobileGridSize: 58px;
 .grid {
   display: inline-block;
   position: absolute;
-  transition: all 0.3s ease-in-out;
+  transition: all 0.1s ease-in-out;
   text-align: center;
   font: {
     size: 45px;
@@ -192,10 +191,12 @@ $mobileGridSize: 58px;
 }
 
 .mobile {
+
   .grid {
     width: $mobileGridSize;
     height: $mobileGridSize;
     line-height: $mobileGridSize;
+    font-size: 35px;
   }
 
   .status128 {

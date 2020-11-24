@@ -1,26 +1,37 @@
 <template>
-  <div :class="`wrapper  ${clientWidth >= 500 ? 'desktopLayout' : 'mobileLayout'}`">
+  <div
+    :class="`wrapper  ${clientWidth >= 500 ? 'desktopLayout' : 'mobileLayout'}`"
+  >
     <div class="container">
       <div class="head">
-        <div class="first">
+        <div :class="`${scoreOverflowed ? 'overflow first' : 'first'}`">
           <div class="title">2048</div>
           <div class="scores">
             <div class="scoreboard currentScore">{{ currentScore }}</div>
-            <div class="scoreboard highestScore">{{ highestScore }}</div>
+            <div class="scoreboard highestScore">
+              {{ highestScore[difficulty - 1] }}
+            </div>
           </div>
         </div>
         <div class="operations">
           <div class="checkbox">
-            <input type="radio" id="simple" value="1" v-model="diffculty" />
+            <input type="radio" id="simple" :value="1" v-model="difficulty" />
             <label for="simple">正常</label>
-            <input type="radio" id="hard" value="2" v-model="diffculty" />
+            <input type="radio" id="hard" :value="2" v-model="difficulty" />
             <label for="hard">困难</label>
           </div>
-          <div class="btn reset">新游戏</div>
+          <div class="btn reset" @click="reset">新游戏</div>
           <div class="btn online" @click="modalVisible = true">多人游戏</div>
         </div>
       </div>
-      <board :blocks="blocks" :width="500" />
+      <board
+        :blocks="blocks"
+        :width="500"
+        :gameover="gameover"
+        @retry="reset()"
+        @touchstart="touchstart"
+        @touchmove="touchmove"
+      />
     </div>
     <a-modal
       title="信息确认"
@@ -55,7 +66,7 @@
 </template>
 
 <script lang="ts">
-import { inject, reactive, ref, watch } from "vue";
+import { inject, onMounted, reactive, Ref, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import board from "../components/core/board.vue";
 import { UserOutlined } from "@ant-design/icons-vue";
@@ -66,11 +77,23 @@ export default {
   name: "index",
   setup() {
     const router = useRouter();
+    const clientWidth: Ref<number> = inject("clientWidth");
 
-    //TODO:根据难度改变游戏逻辑
-    const diffculty = ref(1);
-    watch(diffculty, () => {
-      console.log(diffculty.value);
+    //方块id
+    let id = localStorage.id ? parseInt(localStorage.id) : 0;
+
+    //执行动画期间加锁
+    let locked = false;
+
+    const gameover = ref(false);
+
+    //根据难度改变游戏逻辑
+    const difficulty = ref(
+      localStorage.difficulty ? parseInt(localStorage.difficulty) : 1
+    );
+    watch(difficulty, () => {
+      localStorage.difficulty = difficulty.value.toString();
+      reset();
     });
 
     //对话框
@@ -105,20 +128,248 @@ export default {
     if (!localStorage.id) localStorage.id = generateID();
     onlineInfo.id = <string>localStorage.id;
 
-    //游戏逻辑
+    //稀疏矩阵，用于存储所有方块
     const blocks = ref<block[]>([]);
     const currentScore = ref(0);
-    const highestScore = ref(0);
-    function createBlock(x: position, y: position, status: number) {
+    const highestScore = ref([0, 0]);
+
+    //生成方块
+    function createBlock(
+      x: position,
+      y: position,
+      status: number,
+      merged: boolean = false
+    ) {
       blocks.value.push({
         status,
         position: { x, y },
-        merged: false,
-        id: blocks.value.length,
+        merged,
+        id: id++,
       });
+      localStorage.id = id.toString();
+      return blocks.value[blocks.value.length - 1];
     }
 
-    //缓存对局状态
+    // 合并方块
+    function mergeBlock(b1: block, b2: block, times: number = 1) {
+      if (b1 === b2) console.error("不正确的合并!");
+      if (
+        JSON.stringify(b1.position) !== JSON.stringify(b2.position) ||
+        b1.status !== b2.status
+      )
+        return;
+      let block = createBlock(
+        b1.position.x,
+        b1.position.y,
+        b1.status * 2,
+        true
+      );
+      blocks.value.splice(
+        blocks.value.findIndex((value) => value.id === b1.id),
+        1
+      );
+      blocks.value.splice(
+        blocks.value.findIndex((value) => value.id === b2.id),
+        1
+      );
+      currentScore.value += b1.status * times;
+    }
+
+    //自动生成新方块
+    function generateBlock(
+      position: [number, number] = [
+        Math.floor(Math.random() * 4),
+        Math.floor(Math.random() * 4),
+      ]
+    ) {
+      if (difficulty.value === 1)
+        createBlock(<position>position[0], <position>position[1], 2);
+      else
+        createBlock(
+          <position>position[0],
+          <position>position[1],
+          Math.pow(2, 1 + Math.floor(Math.random() * 5))
+        );
+    }
+
+    // 玩家操作(1,2,3,4分别表示左,上,右,下)
+    function move(move: 1 | 2 | 3 | 4) {
+      if (locked) return;
+      let matrix: Array<Array<block | null>> = new Array(4);
+      let merged: block[][] = [];
+      for (let i = 0; i < 4; i++) matrix[i] = new Array(4).fill(null);
+      for (const iterator of blocks.value) {
+        matrix[iterator.position.y][iterator.position.x] = iterator;
+      }
+      let stuck = true;
+      switch (move) {
+        case 2:
+          for (let i = 1; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+              if (matrix[i][j] === null) continue;
+              while (
+                matrix[i][j].position.y > 0 &&
+                matrix[matrix[i][j].position.y - 1][j] === null
+              )
+                matrix[i][j].position.y--;
+              if (
+                matrix[i][j].position.y > 0 &&
+                matrix[matrix[i][j].position.y - 1][j].status ===
+                  matrix[i][j].status
+              ) {
+                matrix[i][j].position.y--;
+                merged.push([matrix[i][j], matrix[matrix[i][j].position.y][j]]);
+                matrix[matrix[i][j].position.y][j] = {
+                  status: NaN,
+                  position: {
+                    x: j as position,
+                    y: matrix[i][j].position.y as position,
+                  },
+                  merged: true,
+                  id: NaN,
+                };
+              } else matrix[matrix[i][j].position.y][j] = matrix[i][j];
+              if (matrix[i][j].position.y !== i) {
+                stuck = false;
+                matrix[i][j] = null;
+              }
+            }
+          }
+          break;
+        case 4:
+          for (let i = 2; i > -1; i--) {
+            for (let j = 0; j < 4; j++) {
+              if (matrix[i][j] === null) continue;
+              while (
+                matrix[i][j].position.y < 3 &&
+                matrix[matrix[i][j].position.y + 1][j] === null
+              )
+                matrix[i][j].position.y++;
+              if (
+                matrix[i][j].position.y < 3 &&
+                matrix[matrix[i][j].position.y + 1][j].status ===
+                  matrix[i][j].status
+              ) {
+                matrix[i][j].position.y++;
+                merged.push([matrix[i][j], matrix[matrix[i][j].position.y][j]]);
+                matrix[matrix[i][j].position.y][j] = {
+                  status: NaN,
+                  position: {
+                    x: j as position,
+                    y: matrix[i][j].position.y as position,
+                  },
+                  merged: true,
+                  id: NaN,
+                };
+              } else matrix[matrix[i][j].position.y][j] = matrix[i][j];
+              if (matrix[i][j].position.y !== i) {
+                stuck = false;
+                matrix[i][j] = null;
+              }
+            }
+          }
+          break;
+        case 1:
+          for (let j = 1; j < 4; j++) {
+            for (let i = 0; i < 4; i++) {
+              if (matrix[i][j] === null) continue;
+              while (
+                matrix[i][j].position.x > 0 &&
+                matrix[i][matrix[i][j].position.x - 1] === null
+              )
+                matrix[i][j].position.x--;
+              if (
+                matrix[i][j].position.x > 0 &&
+                matrix[i][matrix[i][j].position.x - 1].status ===
+                  matrix[i][j].status
+              ) {
+                matrix[i][j].position.x--;
+                merged.push([matrix[i][j], matrix[i][matrix[i][j].position.x]]);
+                matrix[i][matrix[i][j].position.x] = {
+                  status: NaN,
+                  position: {
+                    x: matrix[i][j].position.x as position,
+                    y: j as position,
+                  },
+                  merged: true,
+                  id: NaN,
+                };
+              } else matrix[i][matrix[i][j].position.x] = matrix[i][j];
+              if (matrix[i][j].position.x !== j) {
+                stuck = false;
+                matrix[i][j] = null;
+              }
+            }
+          }
+          break;
+        case 3:
+          for (let j = 2; j > -1; j--) {
+            for (let i = 0; i < 4; i++) {
+              if (matrix[i][j] === null) continue;
+              while (
+                matrix[i][j].position.x < 3 &&
+                matrix[i][matrix[i][j].position.x + 1] === null
+              )
+                matrix[i][j].position.x++;
+              if (
+                matrix[i][j].position.x < 3 &&
+                matrix[i][matrix[i][j].position.x + 1].status ===
+                  matrix[i][j].status
+              ) {
+                matrix[i][j].position.x++;
+                merged.push([matrix[i][j], matrix[i][matrix[i][j].position.x]]);
+                matrix[i][matrix[i][j].position.x] = {
+                  status: NaN,
+                  position: {
+                    x: matrix[i][j].position.x as position,
+                    y: j as position,
+                  },
+                  merged: true,
+                  id: NaN,
+                };
+              } else matrix[i][matrix[i][j].position.x] = matrix[i][j];
+              if (matrix[i][j].position.x !== j) {
+                stuck = false;
+                matrix[i][j] = null;
+              }
+            }
+          }
+          break;
+      }
+      if (stuck) {
+        return;
+      }
+      let blank: [number, number][] = [];
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          if (matrix[i][j] === null) blank.push([i, j]);
+        }
+      }
+      locked = true;
+      setTimeout(() => {
+        for (const iterator of merged) {
+          mergeBlock(iterator[0], iterator[1], merged.length);
+        }
+        let [y, x] = blank[Math.floor(Math.random() * blank.length)];
+        setTimeout(() => {
+          generateBlock([x, y]);
+          setTimeout(() => {
+            locked = false;
+          }, 100);
+        }, 200);
+      }, 200);
+    }
+
+    function reset() {
+      id = 0;
+      blocks.value = [];
+      currentScore.value = 0;
+      gameover.value = false;
+
+      generateBlock();
+    }
+
+    //缓存游戏状态
     watch(
       blocks,
       () => {
@@ -127,40 +378,121 @@ export default {
       { deep: true }
     );
 
+    setInterval(() => {
+      if (blocks.value.length === 16 && !locked) gameover.value = gameEnd();
+    }, 3000);
+
+    //判断游戏是否结束
+    function gameEnd() {
+      let matrix: Array<Array<block | null>> = new Array(4);
+      for (let i = 0; i < 4; i++) matrix[i] = new Array(4).fill(null);
+      for (const iterator of blocks.value) {
+        matrix[iterator.position.y][iterator.position.x] = iterator;
+      }
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          if (
+            matrix[i][j].status === matrix[i + 1][j].status ||
+            matrix[i][j].status === matrix[i][j + 1].status
+          )
+            return false;
+        }
+      }
+      return true;
+    }
+
     //读取缓存数据
-    if (localStorage.blocks) {
+    if (localStorage.blocks && localStorage.blocks.length > 2) {
       blocks.value = <block[]>JSON.parse(localStorage.blocks);
     } else {
-      createBlock(
-        <position>Math.floor(Math.random() * 4),
-        <position>Math.floor(Math.random() * 4),
-        32
-      );
+      generateBlock();
     }
     if (localStorage.currentScore)
       currentScore.value = parseInt(localStorage.currentScore);
     if (localStorage.highestScore)
-      highestScore.value = parseInt(localStorage.highestScore);
+      highestScore.value = JSON.parse(localStorage.highestScore);
+
+    //判断分数长度是否过高影响页面布局
+    const scoreOverflowed = ref(false);
+    scoreOverflowed.value = overflow();
+    function overflow() {
+      let len = (currentScore.value.toString() + highestScore.value.toString())
+        .length;
+      if (len > 5 && clientWidth.value < 500) return true;
+      if (len > 14) return true;
+      return false;
+    }
+
+    watch(clientWidth, () => {
+      scoreOverflowed.value = overflow();
+    });
 
     //刷新最高分以及缓存
     watch(currentScore, () => {
-      highestScore.value = Math.max(currentScore.value, highestScore.value);
+      scoreOverflowed.value = overflow();
+      highestScore.value[difficulty.value - 1] = Math.max(
+        currentScore.value,
+        highestScore.value[difficulty.value - 1]
+      );
       localStorage.currentScore = currentScore.value;
-      localStorage.highestScore = highestScore.value;
+      localStorage.highestScore = JSON.stringify(highestScore.value);
     });
 
-    const clientWidth = inject("clientWidth");
+    onMounted(() => {
+      document.onkeydown = function (e) {
+        if (e.keyCode > 36 && e.keyCode < 41)
+          move((e.keyCode - 36) as 1 | 2 | 3 | 4);
+      };
+    });
+
+    //处理滑动事件（移动端专属）
+    let [startX, startY] = [0, 0];
+    let [moveX, moveY] = [0, 0];
+    function touchstart(e) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }
+
+    function touchmove(e) {
+      e.preventDefault();
+      moveX = e.touches[0].clientX;
+      moveY = e.touches[0].clientY;
+      if (
+        startX - moveX <= -10 &&
+        Math.abs(moveY - startY) < Math.abs(startX - moveX)
+      ) {
+        move(3);
+      } else if (
+        startX - moveX >= 10 &&
+        Math.abs(moveY - startY) < Math.abs(startX - moveX)
+      ) {
+        move(1);
+      } else if (startY - moveY <= -10) {
+        move(4);
+      } else if (
+        startY - moveY >= 10 &&
+        Math.abs(moveY - startY) >= Math.abs(startX - moveX)
+      ) {
+        move(2);
+      }
+    }
 
     return {
       currentScore,
       highestScore,
       blocks,
-      diffculty,
+      difficulty,
       getOnline,
       modalVisible,
       confirmLoading,
       onlineInfo,
       clientWidth,
+      move,
+      reset,
+      scoreOverflowed,
+      touchstart,
+      touchmove,
+      gameover,
     };
   },
 };
@@ -184,6 +516,7 @@ export default {
     .head {
       margin: auto;
       display: block;
+      text-align: left;
       .first {
         position: relative;
 
@@ -192,7 +525,6 @@ export default {
           cursor: pointer;
           font-weight: 700;
           margin: 0;
-          position: absolute;
           left: 0;
         }
 
@@ -201,6 +533,21 @@ export default {
           right: 0;
           top: 50%;
           transform: translateY(-50%);
+        }
+      }
+
+      .overflow {
+        text-align: center;
+        height: auto !important;
+        .title {
+          position: static;
+        }
+
+        .scores {
+          position: static;
+          transform: none;
+
+          top: 0;
         }
       }
 
@@ -312,6 +659,10 @@ export default {
           }
         }
       }
+
+      // .overflow {
+      //   height: 200px;
+      // }
 
       .operations {
         height: 100px;

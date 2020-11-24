@@ -1,5 +1,11 @@
 <template>
   <div :class="`board ${clientWidth >= width ? 'desktop' : 'mobile'}`">
+    <div v-if="gameover" class="gameover">
+      <p>游戏结束!</p>
+      <div class="lower">
+        <a class="btn retry" @click="retry">再次尝试</a>
+      </div>
+    </div>
     <div class="row">
       <div class="cell" />
       <div class="cell" />
@@ -42,12 +48,18 @@ export default {
   props: {
     blocks: Object,
     width: Number,
+    gameover: Boolean,
   },
-  setup() {
+  setup(props, ctx) {
     const clientWidth = inject("clientWidth");
+
+    function retry() {
+      ctx.emit("retry");
+    }
 
     return {
       clientWidth,
+      retry,
     };
   },
 };
@@ -81,6 +93,18 @@ $mobileGap: 10px;
       border-radius: 3px;
     }
   }
+
+  .gameover {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(238, 228, 218, 0.5);
+    z-index: 100;
+    text-align: center;
+    animation-fill-mode: both;
+  }
 }
 
 .mobile {
@@ -96,6 +120,15 @@ $mobileGap: 10px;
       height: $mobileGridSize;
       width: $mobileGridSize;
       margin-left: $mobileGap;
+    }
+  }
+
+  .gameover {
+    p {
+      font-size: 30px;
+      height: 30px;
+      line-height: 30px;
+      margin-top: 90px;
     }
   }
 }
@@ -114,6 +147,34 @@ $mobileGap: 10px;
       width: $desktopGridSize;
       margin-left: $desktopGap;
     }
+  }
+
+  .gameover {
+    p {
+      font-size: 60px;
+      font-weight: 700;
+      height: 60px;
+      line-height: 60px;
+      margin-top: 200px;
+    }
+  }
+}
+
+.btn {
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 20px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 40px;
+  line-height: 42px;
+  display: inline-block;
+  text-align: center;
+  cursor: pointer;
+  transition: all ease-in-out 0.2s;
+
+  &:hover {
+    background: #574535;
   }
 }
 </style>
