@@ -4,6 +4,8 @@ export interface block {
     y: position;
   };
   merged: boolean;
+  visible: boolean;
+  removed: boolean;
   status: number;
   id: number;
 }

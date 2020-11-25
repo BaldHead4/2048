@@ -80,6 +80,8 @@ export default {
         status,
         position: { x, y },
         merged: false,
+        removed: false,
+        visible:true,
         id: players.length,
       });
     }

@@ -1,5 +1,5 @@
 <template>
-  <div :class="`wrap ${clientWidth >= width ? 'desktop' : 'mobile'}`">
+  <div v-show="block.visible" :class="`wrap ${clientWidth >= width ? 'desktop' : 'mobile'}`">
     <div
       :class="`grid ${block.merged ? 'merged' : 'created'} status${
         block.status > 2048 ? 'Super' : block.status
@@ -191,7 +191,6 @@ $mobileGridSize: 58px;
 }
 
 .mobile {
-
   .grid {
     width: $mobileGridSize;
     height: $mobileGridSize;

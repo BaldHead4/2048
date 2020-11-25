@@ -138,12 +138,15 @@ export default {
       x: position,
       y: position,
       status: number,
-      merged: boolean = false
+      merged: boolean = false,
+      visible: boolean = true
     ) {
       blocks.value.push({
         status,
         position: { x, y },
         merged,
+        visible,
+        removed: false,
         id: id++,
       });
       localStorage.id = id.toString();
@@ -162,18 +165,25 @@ export default {
         b1.position.x,
         b1.position.y,
         b1.status * 2,
-        true
+        true,
+        false
       );
-      blocks.value.splice(
-        blocks.value.findIndex((value) => value.id === b1.id),
-        1
-      );
-      blocks.value.splice(
-        blocks.value.findIndex((value) => value.id === b2.id),
-        1
-      );
-      currentScore.value += b1.status * times;
+      b1.removed = true;
+      b2.removed = true;
+
+      setTimeout(() => {
+        b1.visible = false;
+        b2.visible = false;
+        block.visible = true;
+        currentScore.value += b1.status * times;
+      }, 100);
     }
+
+    let gc = setInterval(() => {
+      blocks.value = blocks.value.filter(
+        (value) => !(value.removed && !value.visible)
+      );
+    }, 1000);
 
     //自动生成新方块
     function generateBlock(
@@ -194,12 +204,12 @@ export default {
 
     // 玩家操作(1,2,3,4分别表示左,上,右,下)
     function move(move: 1 | 2 | 3 | 4) {
-      if (locked) return;
       let matrix: Array<Array<block | null>> = new Array(4);
       let merged: block[][] = [];
       for (let i = 0; i < 4; i++) matrix[i] = new Array(4).fill(null);
       for (const iterator of blocks.value) {
-        matrix[iterator.position.y][iterator.position.x] = iterator;
+        if (!iterator.removed)
+          matrix[iterator.position.y][iterator.position.x] = iterator;
       }
       let stuck = true;
       switch (move) {
@@ -225,6 +235,8 @@ export default {
                     x: j as position,
                     y: matrix[i][j].position.y as position,
                   },
+                  visible: false,
+                  removed: false,
                   merged: true,
                   id: NaN,
                 };
@@ -259,6 +271,8 @@ export default {
                     y: matrix[i][j].position.y as position,
                   },
                   merged: true,
+                  removed: false,
+                  visible: false,
                   id: NaN,
                 };
               } else matrix[matrix[i][j].position.y][j] = matrix[i][j];
@@ -291,6 +305,8 @@ export default {
                     x: matrix[i][j].position.x as position,
                     y: j as position,
                   },
+                  visible: false,
+                  removed: false,
                   merged: true,
                   id: NaN,
                 };
@@ -325,6 +341,8 @@ export default {
                     y: j as position,
                   },
                   merged: true,
+                  removed: false,
+                  visible: false,
                   id: NaN,
                 };
               } else matrix[i][matrix[i][j].position.x] = matrix[i][j];
@@ -345,19 +363,11 @@ export default {
           if (matrix[i][j] === null) blank.push([i, j]);
         }
       }
-      locked = true;
-      setTimeout(() => {
-        for (const iterator of merged) {
-          mergeBlock(iterator[0], iterator[1], merged.length);
-        }
-        let [y, x] = blank[Math.floor(Math.random() * blank.length)];
-        setTimeout(() => {
-          generateBlock([x, y]);
-          setTimeout(() => {
-            locked = false;
-          }, 100);
-        }, 200);
-      }, 200);
+      let [y, x] = blank[Math.floor(Math.random() * blank.length)];
+      generateBlock([x, y]);
+      for (const iterator of merged) {
+        mergeBlock(iterator[0], iterator[1], merged.length);
+      }
     }
 
     function reset() {
@@ -370,31 +380,25 @@ export default {
     }
 
     //缓存游戏状态
-    watch(
-      blocks,
-      () => {
-        localStorage.blocks = JSON.stringify(blocks.value);
-      },
-      { deep: true }
-    );
-
-    setInterval(() => {
-      if (blocks.value.length === 16 && !locked) gameover.value = gameEnd();
-    }, 3000);
+    watch(blocks, () => {
+      if (blocks.value.filter((value) => !value.removed).length === 16)
+        gameover.value = gameEnd();
+      localStorage.blocks = JSON.stringify(blocks.value);
+    });
 
     //判断游戏是否结束
     function gameEnd() {
       let matrix: Array<Array<block | null>> = new Array(4);
       for (let i = 0; i < 4; i++) matrix[i] = new Array(4).fill(null);
       for (const iterator of blocks.value) {
-        matrix[iterator.position.y][iterator.position.x] = iterator;
+        if (!iterator.removed)
+          matrix[iterator.position.y][iterator.position.x] = iterator;
       }
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-          if (
-            matrix[i][j].status === matrix[i + 1][j].status ||
-            matrix[i][j].status === matrix[i][j + 1].status
-          )
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          if (i < 3 && matrix[i][j].status === matrix[i + 1][j].status)
+            return false;
+          if (j < 3 && matrix[i][j].status === matrix[i][j + 1].status)
             return false;
         }
       }
