@@ -82,9 +82,6 @@ export default {
     //方块id
     let id = localStorage.id ? parseInt(localStorage.id) : 0;
 
-    //执行动画期间加锁
-    let locked = false;
-
     const gameover = ref(false);
 
     //根据难度改变游戏逻辑
@@ -450,15 +447,18 @@ export default {
     });
 
     //处理滑动事件（移动端专属）
+    let locked = false;
     let [startX, startY] = [0, 0];
     let [moveX, moveY] = [0, 0];
     function touchstart(e) {
+      locked = false;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
     }
 
     function touchmove(e) {
       e.preventDefault();
+      if (locked) return;
       moveX = e.touches[0].clientX;
       moveY = e.touches[0].clientY;
       if (
@@ -479,6 +479,7 @@ export default {
       ) {
         move(2);
       }
+      locked = true;
     }
 
     return {
