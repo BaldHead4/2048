@@ -73,6 +73,15 @@ $mobileGridSize: 58px;
 $desktopGap: 15px;
 $mobileGap: 10px;
 
+@keyframes gameover {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .board {
   box-sizing: border-box !important;
   background: #bbada0;
@@ -104,6 +113,11 @@ $mobileGap: 10px;
     z-index: 100;
     text-align: center;
     animation-fill-mode: both;
+
+    animation: {
+      name: gameover;
+      duration: 1s;
+    };
   }
 }
 

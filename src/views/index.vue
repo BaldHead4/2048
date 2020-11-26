@@ -39,7 +39,10 @@
       :confirm-loading="confirmLoading"
       @ok="getOnline"
       @cancel="modalVisible = false"
+      :cancelButtonProps="{ disabled: confirmLoading }"
+      :maskClosable="false"
       cancelText="取消"
+      :closable="false"
       okText="确定"
     >
       <a-form :model="onlineInfo">
@@ -78,6 +81,7 @@ export default {
   setup() {
     const router = useRouter();
     const clientWidth: Ref<number> = inject("clientWidth");
+    const socket: WebSocket = inject("socket");
 
     //方块id
     let id = localStorage.id ? parseInt(localStorage.id) : 0;
@@ -95,7 +99,7 @@ export default {
 
     //对话框
     const onlineInfo = reactive({
-      id: "",
+      id: localStorage.userId,
       username: "",
       difficulty: 1,
     });
@@ -105,25 +109,13 @@ export default {
     //进入多人游戏
     function getOnline(): void {
       confirmLoading.value = true;
-      setTimeout(() => {
-        for (let i = 0; i < 4; i++)
-          localStorage[`player${i}`] = JSON.stringify({
-            id: generateID(),
-            username: Math.random().toFixed(5),
-          });
-        confirmLoading.value = false;
-        router.push("/online");
-      }, 1000);
-    }
-
-    //用户id
-    function generateID(): string {
-      return (
-        md5(navigator.userAgent) + Number(new Date()) + md5(Math.random() + "")
+      socket.send(
+        JSON.stringify({
+          method: 0,
+          ...onlineInfo,
+        })
       );
     }
-    if (!localStorage.id) localStorage.id = generateID();
-    onlineInfo.id = <string>localStorage.id;
 
     //稀疏矩阵，用于存储所有方块
     const blocks = ref<block[]>([]);

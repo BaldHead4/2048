@@ -46,6 +46,7 @@ $mobileGridSize: 58px;
 .wrap {
   width: 0 !important;
   height: 0 !important;
+  display: inline-block;
 }
 
 .grid {

@@ -4,15 +4,31 @@
 
 <script lang="ts">
 import { ref, provide } from "vue";
+import md5 from "js-md5";
 export default {
   name: "App",
   setup() {
+    //用户id
+    function generateID(): string {
+      return (
+        md5(navigator.userAgent) + Number(new Date()) + md5(Math.random() + "")
+      );
+    }
+
+    if (!localStorage.userId) localStorage.userId = generateID();
+
     const clientWidth = ref(document.body.clientWidth);
+
+    const socket = new WebSocket(
+      `ws://47.96.68.168:8080/websocket/${localStorage.userId}`
+    );
+
     window.onresize = function () {
       clientWidth.value = document.body.clientWidth;
     };
 
     provide("clientWidth", clientWidth);
+    provide("socket", socket);
   },
 };
 </script>
