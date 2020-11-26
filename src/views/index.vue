@@ -7,7 +7,10 @@
         <div :class="`${scoreOverflowed ? 'overflow first' : 'first'}`">
           <div class="title">2048</div>
           <div class="scores">
-            <div class="scoreboard currentScore">{{ currentScore }}</div>
+            <div class="scoreboard currentScore">
+              {{ currentScore }}
+              <span v-for="item in plus" :key="item[1]">+{{ item[0] }}</span>
+            </div>
             <div class="scoreboard highestScore">
               {{ highestScore[difficulty - 1] }}
             </div>
@@ -121,6 +124,7 @@ export default {
     const blocks = ref<block[]>([]);
     const currentScore = ref(0);
     const highestScore = ref([0, 0]);
+    const plus = ref<[number, number][]>([]);
 
     //生成方块
     function createBlock(
@@ -354,8 +358,16 @@ export default {
       }
       let [y, x] = blank[Math.floor(Math.random() * blank.length)];
       generateBlock([x, y]);
+      let add = 0;
       for (const iterator of merged) {
         mergeBlock(iterator[0], iterator[1], merged.length);
+        add += iterator[0].status;
+      }
+      if (add > 0) {
+        plus.value = [[add * merged.length, Math.random()]];
+        setTimeout(() => {
+          plus.value = [];
+        }, 500);
       }
     }
 
@@ -484,6 +496,7 @@ export default {
       confirmLoading,
       onlineInfo,
       clientWidth,
+      plus,
       move,
       reset,
       scoreOverflowed,
@@ -579,6 +592,20 @@ export default {
   }
 }
 
+@keyframes bubble {
+  0% {
+    opacity: 0.8;
+    top: 50%;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    top: -25px;
+  }
+}
+
 .scores {
   .scoreboard {
     position: relative;
@@ -595,10 +622,23 @@ export default {
   }
 
   .currentScore {
+    position: relative;
     &::after {
       content: "当前分数";
     }
     margin-right: 5px;
+
+    span {
+      position: absolute;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #776e65;
+      opacity: 0;
+      animation: {
+        name: bubble;
+        duration: 0.5s;
+      }
+    }
   }
 
   .highestScore {
