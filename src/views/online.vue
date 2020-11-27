@@ -40,7 +40,7 @@ import board from "../components/core/board.vue";
 import { block, playerIndex, players, position } from "../components/types";
 export default {
   components: { board },
-  name: "index",
+  name: "online",
   setup() {
     const router = useRouter();
 

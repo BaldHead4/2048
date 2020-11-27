@@ -364,9 +364,9 @@ export default {
         add += iterator[0].status;
       }
       if (add > 0) {
-        plus.value = [[add * merged.length, Math.random()]];
+        plus.value.push([add * merged.length, Math.random()]);
         setTimeout(() => {
-          plus.value = [];
+          plus.value.pop();
         }, 500);
       }
     }
