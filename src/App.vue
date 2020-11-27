@@ -23,6 +23,10 @@ export default {
       `ws://47.96.68.168:8080/websocket/${localStorage.userId}`
     );
 
+    socket.onmessage = function (event) {
+      console.log(event);
+    };
+
     window.onresize = function () {
       clientWidth.value = document.body.clientWidth;
     };

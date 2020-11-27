@@ -445,8 +445,10 @@ export default {
 
     onMounted(() => {
       document.onkeydown = function (e) {
-        if (e.keyCode > 36 && e.keyCode < 41)
+        if (e.keyCode > 36 && e.keyCode < 41) {
+          e.preventDefault();
           move((e.keyCode - 36) as 1 | 2 | 3 | 4);
+        }
       };
     });
 
