@@ -31,6 +31,7 @@
         :blocks="blocks"
         :width="500"
         :gameover="gameover"
+        buttonText="再次尝试"
         @retry="reset()"
         @touchstart="touchstart"
         @touchmove="touchmove"
@@ -49,7 +50,7 @@
       okText="确定"
     >
       <a-form :model="onlineInfo">
-        <a-form-item label="昵称：">
+        <a-form-item label="昵称：" v-bind="validateInfos.username">
           <a-input
             v-model:value="onlineInfo.username"
             placeholder="请输入您的昵称"
@@ -72,12 +73,15 @@
 </template>
 
 <script lang="ts">
-import { inject, onMounted, reactive, Ref, ref, watch } from "vue";
+import { inject, onMounted, onUnmounted, reactive, Ref, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import board from "../components/core/board.vue";
 import { UserOutlined } from "@ant-design/icons-vue";
 import md5 from "js-md5";
-import { block, position } from "../components/types";
+import { block, player, position, reconnectInfo } from "../components/types";
+import { generateBlock, mergeBlock, move } from "../components/core/block";
+import { useForm } from "@ant-design-vue/use";
+
 export default {
   components: { board, UserOutlined },
   name: "index",
@@ -85,9 +89,12 @@ export default {
     const router = useRouter();
     const clientWidth: Ref<number> = inject("clientWidth");
     const socket: WebSocket = inject("socket");
+    const playerList: player[] = inject("playerList");
+    const onlineInfo: any = inject("onlineInfo");
+    const reconnectInfoList: Ref<reconnectInfo[]> = inject("reconnectInfoList");
 
     //方块id
-    let id = localStorage.id ? parseInt(localStorage.id) : 0;
+    let id = ref(localStorage.id ? parseInt(localStorage.id) : 0);
 
     const gameover = ref(false);
 
@@ -101,24 +108,47 @@ export default {
     });
 
     //对话框
-    const onlineInfo = reactive({
-      id: localStorage.userId,
-      username: "",
-      difficulty: 1,
-    });
+    async function validateUsername(rule, value: string, vallback) {
+      if (value === "") return Promise.reject("请输入昵称");
+      else if (!value.match(/^[a-zA-Z0-9_-]{1,8}$/g))
+        return Promise.reject("4到8位（字母，数字，下划线，减号）");
+      return Promise.resolve();
+    }
     const modalVisible = ref(false);
     const confirmLoading = ref(false);
+    const { validate, validateInfos } = useForm(
+      onlineInfo,
+      reactive({
+        username: [{ validator: validateUsername, trigger: "change" }],
+      })
+    );
 
     //进入多人游戏
     function getOnline(): void {
-      confirmLoading.value = true;
-      socket.send(
-        JSON.stringify({
-          method: 0,
-          ...onlineInfo,
+      validate()
+        .then(() => {
+          confirmLoading.value = true;
+          localStorage.username = onlineInfo.username;
+          localStorage.onlineDifficulty = onlineInfo.difficulty;
+          localStorage.online = "true";
+          socket.send(
+            JSON.stringify({
+              method: 0,
+              ...onlineInfo,
+            })
+          );
         })
-      );
+        .catch((e) => {});
     }
+    watch([playerList, reconnectInfoList], () => {
+      if (playerList.length > 0 || reconnectInfoList.value.length > 0) {
+        router.push("/online");
+      }
+    });
+
+    onUnmounted(() => {
+      clearInterval(gc);
+    });
 
     //稀疏矩阵，用于存储所有方块
     const blocks = ref<block[]>([]);
@@ -126,258 +156,19 @@ export default {
     const highestScore = ref([0, 0]);
     const plus = ref<[number, number][]>([]);
 
-    //生成方块
-    function createBlock(
-      x: position,
-      y: position,
-      status: number,
-      merged: boolean = false,
-      visible: boolean = true
-    ) {
-      blocks.value.push({
-        status,
-        position: { x, y },
-        merged,
-        visible,
-        removed: false,
-        id: id++,
-      });
-      localStorage.id = id.toString();
-      return blocks.value[blocks.value.length - 1];
-    }
-
-    // 合并方块
-    function mergeBlock(b1: block, b2: block, times: number = 1) {
-      if (b1 === b2) console.error("不正确的合并!");
-      if (
-        JSON.stringify(b1.position) !== JSON.stringify(b2.position) ||
-        b1.status !== b2.status
-      )
-        return;
-      let block = createBlock(
-        b1.position.x,
-        b1.position.y,
-        b1.status * 2,
-        true,
-        false
-      );
-      b1.removed = true;
-      b2.removed = true;
-
-      setTimeout(() => {
-        b1.visible = false;
-        b2.visible = false;
-        block.visible = true;
-        currentScore.value += b1.status * times;
-      }, 100);
-    }
-
     let gc = setInterval(() => {
       blocks.value = blocks.value.filter(
         (value) => !(value.removed && !value.visible)
       );
     }, 1000);
 
-    //自动生成新方块
-    function generateBlock(
-      position: [number, number] = [
-        Math.floor(Math.random() * 4),
-        Math.floor(Math.random() * 4),
-      ]
-    ) {
-      if (difficulty.value === 1)
-        createBlock(<position>position[0], <position>position[1], 2);
-      else
-        createBlock(
-          <position>position[0],
-          <position>position[1],
-          Math.pow(2, 1 + Math.floor(Math.random() * 5))
-        );
-    }
-
-    // 玩家操作(1,2,3,4分别表示左,上,右,下)
-    function move(move: 1 | 2 | 3 | 4) {
-      let matrix: Array<Array<block | null>> = new Array(4);
-      let merged: block[][] = [];
-      for (let i = 0; i < 4; i++) matrix[i] = new Array(4).fill(null);
-      for (const iterator of blocks.value) {
-        if (!iterator.removed)
-          matrix[iterator.position.y][iterator.position.x] = iterator;
-      }
-      let stuck = true;
-      switch (move) {
-        case 2:
-          for (let i = 1; i < 4; i++) {
-            for (let j = 0; j < 4; j++) {
-              if (matrix[i][j] === null) continue;
-              while (
-                matrix[i][j].position.y > 0 &&
-                matrix[matrix[i][j].position.y - 1][j] === null
-              )
-                matrix[i][j].position.y--;
-              if (
-                matrix[i][j].position.y > 0 &&
-                matrix[matrix[i][j].position.y - 1][j].status ===
-                  matrix[i][j].status
-              ) {
-                matrix[i][j].position.y--;
-                merged.push([matrix[i][j], matrix[matrix[i][j].position.y][j]]);
-                matrix[matrix[i][j].position.y][j] = {
-                  status: NaN,
-                  position: {
-                    x: j as position,
-                    y: matrix[i][j].position.y as position,
-                  },
-                  visible: false,
-                  removed: false,
-                  merged: true,
-                  id: NaN,
-                };
-              } else matrix[matrix[i][j].position.y][j] = matrix[i][j];
-              if (matrix[i][j].position.y !== i) {
-                stuck = false;
-                matrix[i][j] = null;
-              }
-            }
-          }
-          break;
-        case 4:
-          for (let i = 2; i > -1; i--) {
-            for (let j = 0; j < 4; j++) {
-              if (matrix[i][j] === null) continue;
-              while (
-                matrix[i][j].position.y < 3 &&
-                matrix[matrix[i][j].position.y + 1][j] === null
-              )
-                matrix[i][j].position.y++;
-              if (
-                matrix[i][j].position.y < 3 &&
-                matrix[matrix[i][j].position.y + 1][j].status ===
-                  matrix[i][j].status
-              ) {
-                matrix[i][j].position.y++;
-                merged.push([matrix[i][j], matrix[matrix[i][j].position.y][j]]);
-                matrix[matrix[i][j].position.y][j] = {
-                  status: NaN,
-                  position: {
-                    x: j as position,
-                    y: matrix[i][j].position.y as position,
-                  },
-                  merged: true,
-                  removed: false,
-                  visible: false,
-                  id: NaN,
-                };
-              } else matrix[matrix[i][j].position.y][j] = matrix[i][j];
-              if (matrix[i][j].position.y !== i) {
-                stuck = false;
-                matrix[i][j] = null;
-              }
-            }
-          }
-          break;
-        case 1:
-          for (let j = 1; j < 4; j++) {
-            for (let i = 0; i < 4; i++) {
-              if (matrix[i][j] === null) continue;
-              while (
-                matrix[i][j].position.x > 0 &&
-                matrix[i][matrix[i][j].position.x - 1] === null
-              )
-                matrix[i][j].position.x--;
-              if (
-                matrix[i][j].position.x > 0 &&
-                matrix[i][matrix[i][j].position.x - 1].status ===
-                  matrix[i][j].status
-              ) {
-                matrix[i][j].position.x--;
-                merged.push([matrix[i][j], matrix[i][matrix[i][j].position.x]]);
-                matrix[i][matrix[i][j].position.x] = {
-                  status: NaN,
-                  position: {
-                    x: matrix[i][j].position.x as position,
-                    y: j as position,
-                  },
-                  visible: false,
-                  removed: false,
-                  merged: true,
-                  id: NaN,
-                };
-              } else matrix[i][matrix[i][j].position.x] = matrix[i][j];
-              if (matrix[i][j].position.x !== j) {
-                stuck = false;
-                matrix[i][j] = null;
-              }
-            }
-          }
-          break;
-        case 3:
-          for (let j = 2; j > -1; j--) {
-            for (let i = 0; i < 4; i++) {
-              if (matrix[i][j] === null) continue;
-              while (
-                matrix[i][j].position.x < 3 &&
-                matrix[i][matrix[i][j].position.x + 1] === null
-              )
-                matrix[i][j].position.x++;
-              if (
-                matrix[i][j].position.x < 3 &&
-                matrix[i][matrix[i][j].position.x + 1].status ===
-                  matrix[i][j].status
-              ) {
-                matrix[i][j].position.x++;
-                merged.push([matrix[i][j], matrix[i][matrix[i][j].position.x]]);
-                matrix[i][matrix[i][j].position.x] = {
-                  status: NaN,
-                  position: {
-                    x: matrix[i][j].position.x as position,
-                    y: j as position,
-                  },
-                  merged: true,
-                  removed: false,
-                  visible: false,
-                  id: NaN,
-                };
-              } else matrix[i][matrix[i][j].position.x] = matrix[i][j];
-              if (matrix[i][j].position.x !== j) {
-                stuck = false;
-                matrix[i][j] = null;
-              }
-            }
-          }
-          break;
-      }
-      if (stuck) {
-        return;
-      }
-      let blank: [number, number][] = [];
-      for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 4; j++) {
-          if (matrix[i][j] === null) blank.push([i, j]);
-        }
-      }
-      let [y, x] = blank[Math.floor(Math.random() * blank.length)];
-      generateBlock([x, y]);
-      let add = 0;
-      for (const iterator of merged) {
-        mergeBlock(iterator[0], iterator[1], merged.length);
-        add += iterator[0].status;
-      }
-      if (add > 0) {
-        plus.value.push([add * merged.length, Math.random()]);
-        setTimeout(() => {
-          plus.value.pop();
-        }, 500);
-      }
-    }
-
     function reset() {
-      id = 0;
+      id.value = 0;
       blocks.value = [];
       currentScore.value = 0;
       gameover.value = false;
 
-      generateBlock();
+      generateBlock(blocks, difficulty.value);
     }
 
     //缓存游戏状态
@@ -410,7 +201,7 @@ export default {
     if (localStorage.blocks && localStorage.blocks.length > 2) {
       blocks.value = <block[]>JSON.parse(localStorage.blocks);
     } else {
-      generateBlock();
+      generateBlock(blocks, difficulty.value);
     }
     if (localStorage.currentScore)
       currentScore.value = parseInt(localStorage.currentScore);
@@ -447,7 +238,13 @@ export default {
       document.onkeydown = function (e) {
         if (e.keyCode > 36 && e.keyCode < 41) {
           e.preventDefault();
-          move((e.keyCode - 36) as 1 | 2 | 3 | 4);
+          move(
+            blocks,
+            difficulty.value,
+            currentScore,
+            (e.keyCode - 36) as 1 | 2 | 3 | 4,
+            plus
+          );
         }
       };
     });
@@ -471,19 +268,19 @@ export default {
         startX - moveX <= -10 &&
         Math.abs(moveY - startY) < Math.abs(startX - moveX)
       ) {
-        move(3);
+        move(blocks, difficulty.value, currentScore, 3, plus);
       } else if (
         startX - moveX >= 10 &&
         Math.abs(moveY - startY) < Math.abs(startX - moveX)
       ) {
-        move(1);
+        move(blocks, difficulty.value, currentScore, 1, plus);
       } else if (startY - moveY <= -10) {
-        move(4);
+        move(blocks, difficulty.value, currentScore, 4, plus);
       } else if (
         startY - moveY >= 10 &&
         Math.abs(moveY - startY) >= Math.abs(startX - moveX)
       ) {
-        move(2);
+        move(blocks, difficulty.value, currentScore, 2, plus);
       }
       locked = true;
     }
@@ -505,6 +302,7 @@ export default {
       touchstart,
       touchmove,
       gameover,
+      validateInfos,
     };
   },
 };

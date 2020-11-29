@@ -10,11 +10,28 @@ export interface block {
   id: number;
 }
 
-export interface players {
+export interface player {
   status: block[];
   score: number;
   username: string;
   id: string;
+}
+
+export interface playerMove {
+  id: string;
+  score: number;
+  blocks: block[];
+  generatedBlock: block;
+  mergedBlocks: [block, block, block][];
+  type?: 1;
+  handled: boolean;
+  method: 1;
+}
+
+export interface reconnectInfo {
+  id: string;
+  username: string;
+  gameMsg: playerMove;
 }
 
 export type AjaxMethod =

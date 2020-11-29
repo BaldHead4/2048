@@ -3,7 +3,7 @@
     <div v-if="gameover" class="gameover">
       <p>游戏结束!</p>
       <div class="lower">
-        <a class="btn retry" @click="retry">再次尝试</a>
+        <a class="btn retry" @click="retry">{{ buttonText }}</a>
       </div>
     </div>
     <div class="row">
@@ -49,6 +49,7 @@ export default {
     blocks: Object,
     width: Number,
     gameover: Boolean,
+    buttonText: String,
   },
   setup(props, ctx) {
     const clientWidth = inject("clientWidth");
@@ -117,7 +118,7 @@ $mobileGap: 10px;
     animation: {
       name: gameover;
       duration: 1s;
-    };
+    }
   }
 }
 

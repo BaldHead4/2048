@@ -6,7 +6,7 @@
           <div class="title">计分板</div>
           <div class="list">
             <div
-              :class="{ player: true, self: index === 0 }"
+              :class="{ player: true, self: player.id === p1.id }"
               v-for="(player, index) in players"
               :key="player.id"
             >
@@ -20,93 +20,310 @@
       <div class="container">
         <div class="head">
           <div class="title">2048</div>
-          <div class="btn quit" @click="$router.push('/')">离开游戏</div>
         </div>
-        <board :width="1000" :players="players[0].status" />
+        <board
+          :width="1000"
+          :blocks="p1.status"
+          :gameover="gameStatus === 1"
+          buttonText="退出"
+          @retry="$router.push('/')"
+          @touchstart="touchstart()"
+          @touchmove="touchmove()"
+        />
       </div>
       <div class="right">
-        <board :width="1000" :blocks="players[1].status" />
-        <board :width="1000" class="mid" :blocks="players[2].status" />
-        <board :width="1000" :blocks="players[3].status" />
+        <board :width="1000" :blocks="p2.status" />
+        <board :width="1000" class="mid" :blocks="p3.status" />
+        <board :width="1000" :blocks="p4.status" />
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { inject, reactive, ref, watch } from "vue";
+import {
+  computed,
+  inject,
+  onMounted,
+  onUnmounted,
+  reactive,
+  Ref,
+  ref,
+  toRef,
+  watch,
+} from "vue";
 import { useRouter } from "vue-router";
 import board from "../components/core/board.vue";
-import { block, playerIndex, players, position } from "../components/types";
+import {
+  block,
+  playerIndex,
+  player,
+  position,
+  playerMove,
+  reconnectInfo,
+} from "../components/types";
+import { generateBlock, mergeBlock, move } from "../components/core/block";
+import { message } from "ant-design-vue";
 export default {
   components: { board },
   name: "online",
   setup() {
     const router = useRouter();
-
-    //TODO:根据难度改变游戏逻辑
-    const diffculty = ref(1);
-    watch(diffculty, () => {
-      console.log(diffculty.value);
-    });
-
-    //对话框
-    const onlineInfo = reactive({
-      id: "",
-      username: "",
-      difficulty: 1,
-    });
-    const modalVisible = ref(false);
-    const confirmLoading = ref(false);
-
-    //进入多人游戏
-    function getOnline(): void {
-      confirmLoading.value = true;
-      setTimeout(() => {
-        confirmLoading.value = false;
-        router.push("/online");
-      }, 1000);
+    if (!localStorage.online || localStorage.online === "false") {
+      router.push("/");
     }
+
+    const socket: WebSocket = inject("socket");
+    const onlineInfo: any = inject("onlineInfo");
+    const playerMove: Ref<playerMove[]> = inject("playerMove");
+    const reconnectInfoList: Ref<reconnectInfo[]> = inject("reconnectInfoList");
+
+    const gameStatus: Ref<number> = inject("gameStatus");
+    watch(gameStatus, () => {
+      if (gameStatus.value === 1) {
+        localStorage.online = "false";
+        message.success("游戏结束");
+      }
+    });
+
+    // TODO: 应该使用一个时间戳，以此判断游戏是否仍在进行中
+
+    //TODO: 玩家互动
+
+    //TODO: 计时器
+
+    // TODO: 玩家互动(Level 5)
 
     //游戏逻辑
-    const players = reactive<players[]>(new Array(4));
-    function createBlock(
-      index: playerIndex,
-      x: position,
-      y: position,
-      status: number
-    ) {
-      players[index].status.push({
-        status,
-        position: { x, y },
-        merged: false,
-        removed: false,
-        visible:true,
-        id: players.length,
-      });
+    const playerList: any[] = inject("playerList");
+
+    if (playerList.length > 0)
+      playerList.splice(
+        playerList.findIndex((value) => value.id === onlineInfo.id),
+        1
+      );
+    else {
+      // TODO: 重连
     }
 
-    //初始化玩家信息
-    for (let i = 0; i < 4; i++) {
-      let info = JSON.parse(localStorage[`player${i}`]);
-      players[i] = {
-        status: [],
-        username: info.username,
-        id: info.id,
+    const p1 = reactive<player>({
+      status: [],
+      score: 0,
+      id: onlineInfo.id,
+      username: onlineInfo.username,
+    });
+
+    const p2 = reactive<player>({
+      status: [],
+      score: 0,
+      id: playerList[0].id,
+      username: playerList[0].username,
+    });
+
+    const p3 = reactive<player>({
+      status: [],
+      score: 0,
+      id: playerList[1].id,
+      username: playerList[1].username,
+    });
+
+    const p4 = reactive<player>({
+      status: [],
+      score: 0,
+      id: playerList[2].id,
+      username: playerList[2].username,
+    });
+
+    const id_playerMap = new Map<string, player>();
+    id_playerMap.set(p1.id, p1);
+    id_playerMap.set(p2.id, p2);
+    id_playerMap.set(p3.id, p3);
+    id_playerMap.set(p4.id, p4);
+
+    const players = computed(() =>
+      [
+        {
+          score: p1.score,
+          id: p1.id,
+          username: p1.username,
+        },
+        {
+          score: p2.score,
+          id: p2.id,
+          username: p2.username,
+        },
+        {
+          score: p3.score,
+          id: p3.id,
+          username: p3.username,
+        },
+        {
+          score: p4.score,
+          id: p4.id,
+          username: p4.username,
+        },
+      ].sort((a, b) => b.score - a.score)
+    );
+
+    socket.send(
+      JSON.stringify(<playerMove>{
+        method: 1,
+        id: p1.id,
         score: 0,
+        blocks: [],
+        handled: false,
+        mergedBlocks: [],
+        generatedBlock: generateBlock(
+          toRef(p1, "status"),
+          onlineInfo.difficulty
+        ),
+      })
+    );
+
+    watch(
+      playerMove,
+      () => {
+        if (playerMove.value.length < 1) return;
+        let top = playerMove.value[playerMove.value.length - 1];
+        if (top.handled) return;
+        let target = id_playerMap.get(top.id);
+        if (target === p1) return;
+        target.status = top.blocks;
+        for (const iterator of top.mergedBlocks) {
+          mergeBlock(
+            toRef(target, "status"),
+            target.status.find((value) => value.id === iterator[0].id),
+            target.status.find((value) => value.id === iterator[1].id),
+            top.mergedBlocks.length,
+            toRef(target, "score"),
+            target.status.find((value) => value.id === iterator[2].id)
+          );
+        }
+        generateBlock(toRef(target, "status"), onlineInfo.difficulty, [
+          top.generatedBlock.position.x,
+          top.generatedBlock.position.y,
+        ]);
+        top.handled = true;
+        playerMove.value.shift();
+      },
+      { deep: true }
+    );
+
+    onMounted(() => {
+      document.onkeydown = function (e) {
+        if (e.keyCode > 36 && e.keyCode < 41) {
+          e.preventDefault();
+          if (gameStatus.value === 1) return;
+          let next = move(
+            toRef(p1, "status"),
+            onlineInfo.difficulty,
+            toRef(p1, "score"),
+            (e.keyCode - 36) as 1 | 2 | 3 | 4
+          );
+          if (next !== null) {
+            socket.send(
+              JSON.stringify(<playerMove>{
+                method: 1,
+                id: p1.id,
+                score: p1.score,
+                handled: false,
+                ...next,
+              })
+            );
+          }
+        }
       };
+    });
+
+    let gc = setInterval(() => {
+      p1.status = p1.status.filter(
+        (value) => !(!value.visible && value.removed)
+      );
+    }, 1000);
+
+    onUnmounted(() => {
+      clearInterval(gc);
+    });
+
+    //处理滑动事件（移动端专属）
+    let locked = false;
+    let [startX, startY] = [0, 0];
+    let [moveX, moveY] = [0, 0];
+    function touchstart(e) {
+      locked = false;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
     }
 
+    function touchmove(e) {
+      e.preventDefault();
+      if (locked || gameStatus.value === 1) return;
+      moveX = e.touches[0].clientX;
+      moveY = e.touches[0].clientY;
+      let next = null;
+      if (
+        startX - moveX <= -10 &&
+        Math.abs(moveY - startY) < Math.abs(startX - moveX)
+      ) {
+        next = move(
+          toRef(p1, "status"),
+          onlineInfo.difficulty,
+          toRef(p1, "score"),
+          3
+        );
+      } else if (
+        startX - moveX >= 10 &&
+        Math.abs(moveY - startY) < Math.abs(startX - moveX)
+      ) {
+        next = move(
+          toRef(p1, "status"),
+          onlineInfo.difficulty,
+          toRef(p1, "score"),
+          1
+        );
+      } else if (startY - moveY <= -10) {
+        next = move(
+          toRef(p1, "status"),
+          onlineInfo.difficulty,
+          toRef(p1, "score"),
+          4
+        );
+      } else if (
+        startY - moveY >= 10 &&
+        Math.abs(moveY - startY) >= Math.abs(startX - moveX)
+      ) {
+        next = move(
+          toRef(p1, "status"),
+          onlineInfo.difficulty,
+          toRef(p1, "score"),
+          2
+        );
+      }
+      if (next !== null) {
+        socket.send(
+          JSON.stringify(<playerMove>{
+            method: 1,
+            id: p1.id,
+            score: p1.score,
+            handled: false,
+            ...next,
+          })
+        );
+      }
+      locked = true;
+    }
 
     //TODO:排名变化时的动画
 
     return {
+      p1,
+      p2,
+      p3,
+      p4,
       players,
-      diffculty,
-      getOnline,
-      modalVisible,
-      confirmLoading,
-      onlineInfo,
+      gameStatus,
+      touchstart,
+      touchmove,
     };
   },
 };
@@ -258,7 +475,6 @@ export default {
       }
     }
   }
-
 }
 
 @media screen and (min-width: 1000px) {

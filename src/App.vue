@@ -3,11 +3,15 @@
 </template>
 
 <script lang="ts">
-import { ref, provide } from "vue";
+import { ref, provide, reactive } from "vue";
 import md5 from "js-md5";
+import { useRouter } from "vue-router";
+import { player, playerMove, reconnectInfo } from "./components/types";
+
 export default {
   name: "App",
   setup() {
+    const router = useRouter();
     //用户id
     function generateID(): string {
       return (
@@ -18,21 +22,67 @@ export default {
     if (!localStorage.userId) localStorage.userId = generateID();
 
     const clientWidth = ref(document.body.clientWidth);
+    window.onresize = function () {
+      clientWidth.value = document.body.clientWidth;
+    };
 
     const socket = new WebSocket(
       `ws://47.96.68.168:8080/websocket/${localStorage.userId}`
     );
 
-    socket.onmessage = function (event) {
-      console.log(event);
-    };
+    const onlineInfo = reactive({
+      id: localStorage.userId,
+      username: localStorage.username ? localStorage.username : "",
+      difficulty: localStorage.onlineDifficulty
+        ? parseInt(localStorage.onlineDifficulty)
+        : 1,
+    });
 
-    window.onresize = function () {
-      clientWidth.value = document.body.clientWidth;
+    const playerList = reactive([]);
+    const playerMove = ref<playerMove[]>([]);
+    const reconnectInfoList = ref<reconnectInfo[]>([]);
+    const gameStatus = ref(0);
+
+    if (localStorage.online === undefined) localStorage.online = "false";
+
+    if (localStorage.online === "true") {
+      socket.send(
+        JSON.stringify({
+          method: 0,
+          ...onlineInfo,
+        })
+      );
+    }
+
+    //TODO: 重连
+
+    socket.onmessage = function (event) {
+      console.log(event.data);
+      let data = JSON.parse(event.data);
+      switch (data.type) {
+        case 0:
+          playerList.push(...data.playerList);
+          break;
+        case 1:
+          playerMove.value.push(data);
+          break;
+        case 2:
+        case 8:
+          gameStatus.value = 1;
+          break;
+        case 3:
+          reconnectInfoList.value = data;
+          break;
+      }
     };
 
     provide("clientWidth", clientWidth);
     provide("socket", socket);
+    provide("playerList", playerList);
+    provide("playerMove", playerMove);
+    provide("gameStatus", gameStatus);
+    provide("onlineInfo", onlineInfo);
+    provide("reconnectInfo", reconnectInfoList);
   },
 };
 </script>

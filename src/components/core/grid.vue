@@ -6,12 +6,12 @@
       }`"
       :style="`
     left: ${
-      clientWidth > 500
+      clientWidth > width
         ? block.position.x * (106.25 + 15) + 15
         : block.position.x * (58 + 10) + 9
     }px;
     top: ${
-      clientWidth > 500
+      clientWidth > width
         ? block.position.y * (106.25 + 15) + 15
         : block.position.y * (58 + 10) + 10
     }px;

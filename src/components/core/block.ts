@@ -1,0 +1,264 @@
+import { Ref } from "vue";
+import { position, block } from "../types";
+
+//生成方块
+function createBlock(
+  blocks: Ref<block[]>,
+  x: position,
+  y: position,
+  status: number,
+  merged: boolean = false,
+  visible: boolean = true
+) {
+  blocks.value.push({
+    status,
+    position: { x, y },
+    merged,
+    visible,
+    removed: false,
+    id: Number(Number(new Date()) + "" + Math.random()),
+  });
+  return blocks.value[blocks.value.length - 1];
+}
+
+// 合并方块
+export function mergeBlock(
+  blocks: Ref<block[]>,
+  b1: block,
+  b2: block,
+  times: number = 1,
+  score: Ref<number>,
+  newBlock?: block
+) {
+  b1.removed = true;
+  b2.removed = true;
+  if (arguments.length < 6)
+    newBlock = createBlock(
+      blocks,
+      b1.position.x,
+      b1.position.y,
+      b1.status * 2,
+      true,
+      false
+    );
+
+  setTimeout(() => {
+    b1.visible = false;
+    b2.visible = false;
+    newBlock.visible = true;
+    score.value += b1.status * times;
+    console.log("merged");
+  }, 100);
+
+  return newBlock;
+}
+
+//自动生成新方块
+export function generateBlock(
+  blocks: Ref<block[]>,
+  difficulty: number,
+  position: [number, number] = [
+    Math.floor(Math.random() * 4),
+    Math.floor(Math.random() * 4),
+  ],
+  val?: number
+) {
+  if (difficulty === 1)
+    return createBlock(blocks, <position>position[0], <position>position[1], 2);
+  else
+    return createBlock(
+      blocks,
+      <position>position[0],
+      <position>position[1],
+      Math.pow(2, 1 + Math.floor(Math.random() * 5))
+    );
+}
+
+// 玩家操作(1,2,3,4分别表示左,上,右,下)
+export function move(
+  blocks: Ref<block[]>,
+  difficulty: number,
+  score: Ref<number>,
+  move: 1 | 2 | 3 | 4,
+  plus?: Ref<[number, number][]>
+) {
+  let matrix: Array<Array<block | null>> = new Array(4);
+  let merged: block[][] = [];
+  for (let i = 0; i < 4; i++) matrix[i] = new Array(4).fill(null);
+  for (const iterator of blocks.value) {
+    if (!iterator.removed)
+      matrix[iterator.position.y][iterator.position.x] = iterator;
+  }
+  let stuck = true;
+  switch (move) {
+    case 2:
+      for (let i = 1; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          if (matrix[i][j] === null) continue;
+          while (
+            matrix[i][j].position.y > 0 &&
+            matrix[matrix[i][j].position.y - 1][j] === null
+          )
+            matrix[i][j].position.y--;
+          if (
+            matrix[i][j].position.y > 0 &&
+            matrix[matrix[i][j].position.y - 1][j].status ===
+              matrix[i][j].status
+          ) {
+            matrix[i][j].position.y--;
+            merged.push([matrix[i][j], matrix[matrix[i][j].position.y][j]]);
+            matrix[matrix[i][j].position.y][j] = {
+              status: NaN,
+              position: {
+                x: j as position,
+                y: matrix[i][j].position.y as position,
+              },
+              visible: false,
+              removed: false,
+              merged: true,
+              id: NaN,
+            };
+          } else matrix[matrix[i][j].position.y][j] = matrix[i][j];
+          if (matrix[i][j].position.y !== i) {
+            stuck = false;
+            matrix[i][j] = null;
+          }
+        }
+      }
+      break;
+    case 4:
+      for (let i = 2; i > -1; i--) {
+        for (let j = 0; j < 4; j++) {
+          if (matrix[i][j] === null) continue;
+          while (
+            matrix[i][j].position.y < 3 &&
+            matrix[matrix[i][j].position.y + 1][j] === null
+          )
+            matrix[i][j].position.y++;
+          if (
+            matrix[i][j].position.y < 3 &&
+            matrix[matrix[i][j].position.y + 1][j].status ===
+              matrix[i][j].status
+          ) {
+            matrix[i][j].position.y++;
+            merged.push([matrix[i][j], matrix[matrix[i][j].position.y][j]]);
+            matrix[matrix[i][j].position.y][j] = {
+              status: NaN,
+              position: {
+                x: j as position,
+                y: matrix[i][j].position.y as position,
+              },
+              merged: true,
+              removed: false,
+              visible: false,
+              id: NaN,
+            };
+          } else matrix[matrix[i][j].position.y][j] = matrix[i][j];
+          if (matrix[i][j].position.y !== i) {
+            stuck = false;
+            matrix[i][j] = null;
+          }
+        }
+      }
+      break;
+    case 1:
+      for (let j = 1; j < 4; j++) {
+        for (let i = 0; i < 4; i++) {
+          if (matrix[i][j] === null) continue;
+          while (
+            matrix[i][j].position.x > 0 &&
+            matrix[i][matrix[i][j].position.x - 1] === null
+          )
+            matrix[i][j].position.x--;
+          if (
+            matrix[i][j].position.x > 0 &&
+            matrix[i][matrix[i][j].position.x - 1].status ===
+              matrix[i][j].status
+          ) {
+            matrix[i][j].position.x--;
+            merged.push([matrix[i][j], matrix[i][matrix[i][j].position.x]]);
+            matrix[i][matrix[i][j].position.x] = {
+              status: NaN,
+              position: {
+                x: matrix[i][j].position.x as position,
+                y: j as position,
+              },
+              visible: false,
+              removed: false,
+              merged: true,
+              id: NaN,
+            };
+          } else matrix[i][matrix[i][j].position.x] = matrix[i][j];
+          if (matrix[i][j].position.x !== j) {
+            stuck = false;
+            matrix[i][j] = null;
+          }
+        }
+      }
+      break;
+    case 3:
+      for (let j = 2; j > -1; j--) {
+        for (let i = 0; i < 4; i++) {
+          if (matrix[i][j] === null) continue;
+          while (
+            matrix[i][j].position.x < 3 &&
+            matrix[i][matrix[i][j].position.x + 1] === null
+          )
+            matrix[i][j].position.x++;
+          if (
+            matrix[i][j].position.x < 3 &&
+            matrix[i][matrix[i][j].position.x + 1].status ===
+              matrix[i][j].status
+          ) {
+            matrix[i][j].position.x++;
+            merged.push([matrix[i][j], matrix[i][matrix[i][j].position.x]]);
+            matrix[i][matrix[i][j].position.x] = {
+              status: NaN,
+              position: {
+                x: matrix[i][j].position.x as position,
+                y: j as position,
+              },
+              merged: true,
+              removed: false,
+              visible: false,
+              id: NaN,
+            };
+          } else matrix[i][matrix[i][j].position.x] = matrix[i][j];
+          if (matrix[i][j].position.x !== j) {
+            stuck = false;
+            matrix[i][j] = null;
+          }
+        }
+      }
+      break;
+  }
+  if (stuck) {
+    return null;
+  }
+  let blank: [number, number][] = [];
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      if (matrix[i][j] === null) blank.push([i, j]);
+    }
+  }
+  let [y, x] = blank[Math.floor(Math.random() * blank.length)];
+  let block = generateBlock(blocks, difficulty, [x, y]);
+  let add = 0;
+  for (const iterator of merged) {
+    iterator.push(
+      mergeBlock(blocks, iterator[0], iterator[1], merged.length, score)
+    );
+    add += iterator[0].status;
+  }
+  if (add > 0 && plus) {
+    plus.value.push([add * merged.length, Math.random()]);
+    setTimeout(() => {
+      plus.value.pop();
+    }, 500);
+  }
+  return {
+    blocks: blocks.value.filter((value) => !(value.removed && !value.visible)),
+    mergedBlocks: merged,
+    generatedBlock: block,
+  };
+}
