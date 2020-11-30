@@ -31,7 +31,13 @@ const routePathSet = new Set(routes.map((value) => value.path));
 
 //路由守卫
 router.beforeEach((to, from, next) => {
-  if (!routePathSet.has(to.path)) {
+  if (
+    !routePathSet.has(to.path) ||
+    (to.path === "/online" &&
+      (isNaN(Number(localStorage.online)) ||
+        Number(new Date()) - Number(localStorage.online) > 300000)) ||
+    from.path === "online"
+  ) {
     next({
       path: "/",
     });

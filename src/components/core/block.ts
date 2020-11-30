@@ -2,7 +2,7 @@ import { Ref } from "vue";
 import { position, block } from "../types";
 
 //生成方块
-function createBlock(
+export function createBlock(
   blocks: Ref<block[]>,
   x: position,
   y: position,
@@ -30,8 +30,8 @@ export function mergeBlock(
   score: Ref<number>,
   newBlock?: block
 ) {
-  b1.removed = true;
-  b2.removed = true;
+  if (b1) b1.removed = true;
+  if (b2) b2.removed = true;
   if (arguments.length < 6)
     newBlock = createBlock(
       blocks,
@@ -43,11 +43,10 @@ export function mergeBlock(
     );
 
   setTimeout(() => {
-    b1.visible = false;
-    b2.visible = false;
+    if (b1) b1.visible = false;
+    if (b2) b2.visible = false;
     newBlock.visible = true;
-    score.value += b1.status * times;
-    console.log("merged");
+    if (b1 || b2) score.value += (b1 ? b1.status : b2.status) * times;
   }, 100);
 
   return newBlock;
@@ -84,6 +83,9 @@ export function move(
 ) {
   let matrix: Array<Array<block | null>> = new Array(4);
   let merged: block[][] = [];
+  blocks.value = blocks.value.filter(
+    (value) => !(value.removed && !value.visible)
+  );
   for (let i = 0; i < 4; i++) matrix[i] = new Array(4).fill(null);
   for (const iterator of blocks.value) {
     if (!iterator.removed)

@@ -86,7 +86,6 @@ export default {
   components: { board, UserOutlined },
   name: "index",
   setup() {
-    const router = useRouter();
     const clientWidth: Ref<number> = inject("clientWidth");
     const socket: WebSocket = inject("socket");
     const playerList: player[] = inject("playerList");
@@ -130,7 +129,6 @@ export default {
           confirmLoading.value = true;
           localStorage.username = onlineInfo.username;
           localStorage.onlineDifficulty = onlineInfo.difficulty;
-          localStorage.online = "true";
           socket.send(
             JSON.stringify({
               method: 0,
@@ -140,15 +138,6 @@ export default {
         })
         .catch((e) => {});
     }
-    watch([playerList, reconnectInfoList], () => {
-      if (playerList.length > 0 || reconnectInfoList.value.length > 0) {
-        router.push("/online");
-      }
-    });
-
-    onUnmounted(() => {
-      clearInterval(gc);
-    });
 
     //稀疏矩阵，用于存储所有方块
     const blocks = ref<block[]>([]);
@@ -156,11 +145,7 @@ export default {
     const highestScore = ref([0, 0]);
     const plus = ref<[number, number][]>([]);
 
-    let gc = setInterval(() => {
-      blocks.value = blocks.value.filter(
-        (value) => !(value.removed && !value.visible)
-      );
-    }, 1000);
+
 
     function reset() {
       id.value = 0;

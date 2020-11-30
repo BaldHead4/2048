@@ -84,6 +84,7 @@ $mobileGap: 10px;
 }
 
 .board {
+  display: flow-root;
   box-sizing: border-box !important;
   background: #bbada0;
   position: relative;

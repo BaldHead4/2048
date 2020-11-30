@@ -1,6 +1,6 @@
 <template>
   <div class="wrapper">
-    <div class="gui">
+    <div class="gui" v-if="!error">
       <div class="left">
         <div class="scoreboard">
           <div class="title">计分板</div>
@@ -43,6 +43,7 @@
 <script lang="ts">
 import {
   computed,
+  defineComponent,
   inject,
   onMounted,
   onUnmounted,
@@ -62,16 +63,18 @@ import {
   playerMove,
   reconnectInfo,
 } from "../components/types";
-import { generateBlock, mergeBlock, move } from "../components/core/block";
+import {
+  createBlock,
+  generateBlock,
+  mergeBlock,
+  move,
+} from "../components/core/block";
 import { message } from "ant-design-vue";
 export default {
   components: { board },
   name: "online",
   setup() {
     const router = useRouter();
-    if (!localStorage.online || localStorage.online === "false") {
-      router.push("/");
-    }
 
     const socket: WebSocket = inject("socket");
     const onlineInfo: any = inject("onlineInfo");
@@ -79,59 +82,118 @@ export default {
     const reconnectInfoList: Ref<reconnectInfo[]> = inject("reconnectInfoList");
 
     const gameStatus: Ref<number> = inject("gameStatus");
-    watch(gameStatus, () => {
-      if (gameStatus.value === 1) {
-        localStorage.online = "false";
+    watch(gameStatus, (newVal, oldVal) => {
+      if (newVal === 1) {
+        reconnectInfoList.value = [];
+        localStorage.online = -Infinity;
         message.success("游戏结束");
-      }
+        clearInterval(gc);
+      } else if (newVal === -1) message.warn("您已断线，正在重新连接");
+      else if (oldVal === -1) message.success("您已重新连接至在线游戏");
     });
 
-    // TODO: 应该使用一个时间戳，以此判断游戏是否仍在进行中
-
-    //TODO: 玩家互动
-
-    //TODO: 计时器
-
     // TODO: 玩家互动(Level 5)
+
+    // TODO: 玩家id记错
+
+    // TODO: 多人模式在后期效率极低，考虑内存溢出等原因
 
     //游戏逻辑
     const playerList: any[] = inject("playerList");
 
-    if (playerList.length > 0)
+    const error = ref(false);
+
+    if (reconnectInfoList.value.length > 0) {
+      reconnectInfoList.value.sort((a, b) =>
+        a.gameMsg.id === localStorage.userId ? -1 : 0
+      );
+    } else if (playerList.length > 0)
       playerList.splice(
-        playerList.findIndex((value) => value.id === onlineInfo.id),
+        playerList.findIndex((value) => value.id === localStorage.userId),
         1
       );
     else {
-      // TODO: 重连
+      error.value = true;
+      router.push({ path: "/" });
+      return {
+        error,
+      };
     }
 
     const p1 = reactive<player>({
-      status: [],
-      score: 0,
-      id: onlineInfo.id,
-      username: onlineInfo.username,
+      status:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[0].gameMsg.blocks
+          : [],
+      score:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[0].gameMsg.score
+          : 0,
+      id:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[0].gameMsg.id
+          : onlineInfo.id,
+      username:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[0].gameMsg.username
+          : onlineInfo.username,
     });
 
     const p2 = reactive<player>({
-      status: [],
-      score: 0,
-      id: playerList[0].id,
-      username: playerList[0].username,
+      status:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[1].gameMsg.blocks
+          : [],
+      score:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[1].gameMsg.score
+          : 0,
+      id:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[1].gameMsg.id
+          : playerList[0].id,
+      username:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[1].gameMsg.username
+          : playerList[0].username,
     });
 
     const p3 = reactive<player>({
-      status: [],
-      score: 0,
-      id: playerList[1].id,
-      username: playerList[1].username,
+      status:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[2].gameMsg.blocks
+          : [],
+      score:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[2].gameMsg.score
+          : 0,
+      id:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[2].gameMsg.id
+          : playerList[1].id,
+      username:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[2].gameMsg.username
+          : playerList[1].username,
     });
 
     const p4 = reactive<player>({
-      status: [],
-      score: 0,
-      id: playerList[2].id,
-      username: playerList[2].username,
+      status:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[3].gameMsg.blocks
+          : [],
+      score:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[3].gameMsg.score
+          : 0,
+      id:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[3].gameMsg.id
+          : playerList[2].id,
+      username:
+        reconnectInfoList.value.length > 0
+          ? reconnectInfoList.value[3].gameMsg.username
+          : playerList[2].username,
     });
 
     const id_playerMap = new Map<string, player>();
@@ -141,44 +203,25 @@ export default {
     id_playerMap.set(p4.id, p4);
 
     const players = computed(() =>
-      [
-        {
-          score: p1.score,
-          id: p1.id,
-          username: p1.username,
-        },
-        {
-          score: p2.score,
-          id: p2.id,
-          username: p2.username,
-        },
-        {
-          score: p3.score,
-          id: p3.id,
-          username: p3.username,
-        },
-        {
-          score: p4.score,
-          id: p4.id,
-          username: p4.username,
-        },
-      ].sort((a, b) => b.score - a.score)
+      [p1, p2, p3, p4].sort((a, b) => b.score - a.score)
     );
 
-    socket.send(
-      JSON.stringify(<playerMove>{
-        method: 1,
-        id: p1.id,
-        score: 0,
-        blocks: [],
-        handled: false,
-        mergedBlocks: [],
-        generatedBlock: generateBlock(
-          toRef(p1, "status"),
-          onlineInfo.difficulty
-        ),
-      })
-    );
+    if (reconnectInfoList.value.length === 0) {
+      socket.send(
+        JSON.stringify(<playerMove>{
+          method: 1,
+          id: p1.id,
+          score: 0,
+          blocks: [],
+          handled: false,
+          mergedBlocks: [],
+          generatedBlock: generateBlock(
+            toRef(p1, "status"),
+            onlineInfo.difficulty
+          ),
+        })
+      );
+    }
 
     watch(
       playerMove,
@@ -187,8 +230,13 @@ export default {
         let top = playerMove.value[playerMove.value.length - 1];
         if (top.handled) return;
         let target = id_playerMap.get(top.id);
-        if (target === p1) return;
+        if (target.id === p1.id) {
+          playerMove.value = [];
+          return;
+        }
         target.status = top.blocks;
+
+        target.score = top.score;
         for (const iterator of top.mergedBlocks) {
           mergeBlock(
             toRef(target, "status"),
@@ -199,17 +247,36 @@ export default {
             target.status.find((value) => value.id === iterator[2].id)
           );
         }
-        generateBlock(toRef(target, "status"), onlineInfo.difficulty, [
-          top.generatedBlock.position.x,
-          top.generatedBlock.position.y,
-        ]);
+        if (top.generatedBlock)
+          createBlock(
+            toRef(target, "status"),
+            top.generatedBlock.position.x,
+            top.generatedBlock.position.y,
+            top.generatedBlock.status
+          );
         top.handled = true;
-        playerMove.value.shift();
+        playerMove.value = [];
       },
       { deep: true }
     );
 
+    const time = ref(500);
+
     onMounted(() => {
+      // TODO: 计时器
+      // message.info(
+      //   defineComponent({
+
+      //     data() {
+      //       return { count: 300 };
+      //     },
+      //     methods: {
+      //       increment() {
+      //         this.count++;
+      //       },
+      //     },
+      //   })
+      // );
       document.onkeydown = function (e) {
         if (e.keyCode > 36 && e.keyCode < 41) {
           e.preventDefault();
@@ -225,9 +292,12 @@ export default {
               JSON.stringify(<playerMove>{
                 method: 1,
                 id: p1.id,
+                username: p1.username,
                 score: p1.score,
                 handled: false,
-                ...next,
+                blocks: next.blocks,
+                mergedBlocks: next.mergedBlocks,
+                generatedBlock: next.generatedBlock,
               })
             );
           }
@@ -236,10 +306,19 @@ export default {
     });
 
     let gc = setInterval(() => {
-      p1.status = p1.status.filter(
-        (value) => !(!value.visible && value.removed)
+      socket.send(
+        JSON.stringify(<playerMove>{
+          method: 1,
+          id: p1.id,
+          username: p1.username,
+          score: p1.score,
+          handled: false,
+          blocks: p1.status,
+          mergedBlocks: [],
+          generatedBlock: null,
+        })
       );
-    }, 1000);
+    }, 10000);
 
     onUnmounted(() => {
       clearInterval(gc);
@@ -304,9 +383,12 @@ export default {
           JSON.stringify(<playerMove>{
             method: 1,
             id: p1.id,
+            username: p1.username,
             score: p1.score,
             handled: false,
-            ...next,
+            blocks: next.blocks,
+            mergedBlocks: next.mergedBlocks,
+            generatedBlock: next.generatedBlock,
           })
         );
       }
@@ -324,6 +406,7 @@ export default {
       gameStatus,
       touchstart,
       touchmove,
+      error,
     };
   },
 };

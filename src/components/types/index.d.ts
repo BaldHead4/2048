@@ -19,6 +19,7 @@ export interface player {
 
 export interface playerMove {
   id: string;
+  username: string,
   score: number;
   blocks: block[];
   generatedBlock: block;
