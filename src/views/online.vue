@@ -27,8 +27,8 @@
           :gameover="gameStatus === 1"
           buttonText="退出"
           @retry="$router.push('/')"
-          @touchstart="touchstart()"
-          @touchmove="touchmove()"
+          @touchstart="touchstart"
+          @touchmove="touchmove"
         />
       </div>
       <div class="right">
