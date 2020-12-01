@@ -35,6 +35,7 @@
         @retry="reset()"
         @touchstart="touchstart"
         @touchmove="touchmove"
+        @touchend="touchend"
       />
     </div>
     <a-modal
@@ -145,8 +146,6 @@ export default {
     const highestScore = ref([0, 0]);
     const plus = ref<[number, number][]>([]);
 
-
-
     function reset() {
       id.value = 0;
       blocks.value = [];
@@ -239,7 +238,6 @@ export default {
     let [startX, startY] = [0, 0];
     let [moveX, moveY] = [0, 0];
     function touchstart(e) {
-      locked = false;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
     }
@@ -250,24 +248,28 @@ export default {
       moveX = e.touches[0].clientX;
       moveY = e.touches[0].clientY;
       if (
-        startX - moveX <= -10 &&
+        startX - moveX < -0 &&
         Math.abs(moveY - startY) < Math.abs(startX - moveX)
       ) {
         move(blocks, difficulty.value, currentScore, 3, plus);
       } else if (
-        startX - moveX >= 10 &&
+        startX - moveX > 0 &&
         Math.abs(moveY - startY) < Math.abs(startX - moveX)
       ) {
         move(blocks, difficulty.value, currentScore, 1, plus);
-      } else if (startY - moveY <= -10) {
+      } else if (startY - moveY < -0) {
         move(blocks, difficulty.value, currentScore, 4, plus);
       } else if (
-        startY - moveY >= 10 &&
+        startY - moveY > 0 &&
         Math.abs(moveY - startY) >= Math.abs(startX - moveX)
       ) {
         move(blocks, difficulty.value, currentScore, 2, plus);
       }
       locked = true;
+    }
+
+    function touchend() {
+      locked = false;
     }
 
     return {
@@ -286,6 +288,7 @@ export default {
       scoreOverflowed,
       touchstart,
       touchmove,
+      touchend,
       gameover,
       validateInfos,
     };

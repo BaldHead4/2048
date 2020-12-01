@@ -86,6 +86,13 @@ $mobileGridSize: 58px;
     -moz-transform: scale(0);
     transform: scale(0);
   }
+
+  50% {
+    -webkit-transform: scale(0);
+    -moz-transform: scale(0);
+    transform: scale(0);
+  }
+
   100% {
     -webkit-transform: scale(1);
     -moz-transform: scale(1);
@@ -96,7 +103,7 @@ $mobileGridSize: 58px;
 .created {
   animation: {
     name: create;
-    duration: 0.2s;
+    duration: 0.4s;
   }
 }
 

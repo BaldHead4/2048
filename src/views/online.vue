@@ -29,6 +29,7 @@
           @retry="$router.push('/')"
           @touchstart="touchstart"
           @touchmove="touchmove"
+          @touchend="touchend"
         />
       </div>
       <div class="right">
@@ -93,10 +94,6 @@ export default {
     });
 
     // TODO: 玩家互动(Level 5)
-
-    // TODO: 玩家id记错
-
-    // TODO: 多人模式在后期效率极低，考虑内存溢出等原因
 
     //游戏逻辑
     const playerList: any[] = inject("playerList");
@@ -329,7 +326,6 @@ export default {
     let [startX, startY] = [0, 0];
     let [moveX, moveY] = [0, 0];
     function touchstart(e) {
-      locked = false;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
     }
@@ -395,6 +391,10 @@ export default {
       locked = true;
     }
 
+    function touchend() {
+      locked = false;
+    }
+
     //TODO:排名变化时的动画
 
     return {
@@ -406,6 +406,7 @@ export default {
       gameStatus,
       touchstart,
       touchmove,
+      touchend,
       error,
     };
   },
