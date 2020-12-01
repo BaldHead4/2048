@@ -337,7 +337,7 @@ export default {
       moveY = e.touches[0].clientY;
       let next = null;
       if (
-        startX - moveX <= -10 &&
+        startX - moveX < 0 &&
         Math.abs(moveY - startY) < Math.abs(startX - moveX)
       ) {
         next = move(
@@ -347,7 +347,7 @@ export default {
           3
         );
       } else if (
-        startX - moveX >= 10 &&
+        startX - moveX > 0 &&
         Math.abs(moveY - startY) < Math.abs(startX - moveX)
       ) {
         next = move(
@@ -356,7 +356,10 @@ export default {
           toRef(p1, "score"),
           1
         );
-      } else if (startY - moveY <= -10) {
+      } else if (
+        startY - moveY < 0 &&
+        Math.abs(moveY - startY) >= Math.abs(startX - moveX)
+      ) {
         next = move(
           toRef(p1, "status"),
           onlineInfo.difficulty,
@@ -364,7 +367,7 @@ export default {
           4
         );
       } else if (
-        startY - moveY >= 10 &&
+        startY - moveY > 0 &&
         Math.abs(moveY - startY) >= Math.abs(startX - moveX)
       ) {
         next = move(

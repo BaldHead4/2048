@@ -79,7 +79,7 @@ export function move(
   difficulty: number,
   score: Ref<number>,
   move: 1 | 2 | 3 | 4,
-  plus?: Ref<[number, number][]>
+  plus?: Ref<[number, number, number][]>
 ) {
   let matrix: Array<Array<block | null>> = new Array(4);
   let merged: block[][] = [];
@@ -253,7 +253,7 @@ export function move(
     add += iterator[0].status;
   }
   if (add > 0 && plus) {
-    plus.value.push([add * merged.length, Math.random()]);
+    plus.value.push([add, merged.length, Math.random()]);
     setTimeout(() => {
       plus.value.pop();
     }, 500);

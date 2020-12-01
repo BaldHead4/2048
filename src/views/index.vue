@@ -9,7 +9,12 @@
           <div class="scores">
             <div class="scoreboard currentScore">
               {{ currentScore }}
-              <span v-for="item in plus" :key="item[1]">+{{ item[0] }}</span>
+              <span class="plus" v-for="item in plus" :key="item[2]"
+                >+{{ item[0]
+                }}<span :class="`time${item[1]} times`" v-show="item[1] > 1"
+                  >x{{ item[1] }}
+                </span></span
+              >
             </div>
             <div class="scoreboard highestScore">
               {{ highestScore[difficulty - 1] }}
@@ -144,7 +149,7 @@ export default {
     const blocks = ref<block[]>([]);
     const currentScore = ref(0);
     const highestScore = ref([0, 0]);
-    const plus = ref<[number, number][]>([]);
+    const plus = ref<[number, number, number][]>([]);
 
     function reset() {
       id.value = 0;
@@ -258,7 +263,10 @@ export default {
         Math.abs(moveY - startY) < Math.abs(startX - moveX)
       ) {
         move(blocks, difficulty.value, currentScore, 1, plus);
-      } else if (startY - moveY < -0) {
+      } else if (
+        startY - moveY < -0 &&
+        Math.abs(moveY - startY) >= Math.abs(startX - moveX)
+      ) {
         move(blocks, difficulty.value, currentScore, 4, plus);
       } else if (
         startY - moveY > 0 &&
@@ -419,7 +427,7 @@ export default {
     }
     margin-right: 5px;
 
-    span {
+    .plus {
       position: absolute;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -428,6 +436,29 @@ export default {
       animation: {
         name: bubble;
         duration: 0.5s;
+      }
+
+      .times {
+        margin-left: 5px;
+
+        font-size: 15px;
+      }
+
+      .time3 {
+        color: #0b3779;
+      }
+
+      .time4 {
+        color: #edcf72;
+      }
+
+      .time5,
+      .time6.time7 {
+        color: #720749;
+      }
+
+      .time8 {
+        color: red;
       }
     }
   }

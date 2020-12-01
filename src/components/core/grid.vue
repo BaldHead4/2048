@@ -1,5 +1,8 @@
 <template>
-  <div v-show="block.visible" :class="`wrap ${clientWidth >= width ? 'desktop' : 'mobile'}`">
+  <div
+    v-show="block.visible"
+    :class="`wrap ${clientWidth >= width ? 'desktop' : 'mobile'}`"
+  >
     <div
       :class="`grid ${block.merged ? 'merged' : 'created'} status${
         block.status > 2048 ? 'Super' : block.status
@@ -85,26 +88,25 @@ $mobileGridSize: 58px;
     -webkit-transform: scale(0);
     -moz-transform: scale(0);
     transform: scale(0);
-  }
-
-  50% {
-    -webkit-transform: scale(0);
-    -moz-transform: scale(0);
-    transform: scale(0);
+    opacity: 1;
   }
 
   100% {
     -webkit-transform: scale(1);
     -moz-transform: scale(1);
     transform: scale(1);
+    opacity: 1;
   }
 }
 
 .created {
+  opacity: 0;
   animation: {
     name: create;
-    duration: 0.4s;
+    duration: 0.2s;
+    delay: 0.2s;
   }
+  animation-fill-mode: forwards;
 }
 
 .merged {
