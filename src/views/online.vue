@@ -20,6 +20,9 @@
       <div class="container">
         <div class="head">
           <div class="title">2048</div>
+          <div class="operation" v-show="time[0] >= 0">
+            {{ time[0] }}:{{ time[1] }}{{ time[2] }}
+          </div>
         </div>
         <board
           :width="1000"
@@ -36,6 +39,11 @@
         <board :width="1000" :blocks="p2.status" />
         <board :width="1000" class="mid" :blocks="p3.status" />
         <board :width="1000" :blocks="p4.status" />
+      </div>
+      <div class="usernames">
+        <div class="name">{{ p2.username }}</div>
+        <div class="name">{{ p3.username }}</div>
+        <div class="name">{{ p4.username }}</div>
       </div>
     </div>
   </div>
@@ -90,16 +98,30 @@ export default {
         message.success("游戏结束");
         clearInterval(gc);
       } else if (newVal === -1) message.warn("您已断线，正在重新连接");
-      else if (oldVal === -1) message.success("您已重新连接至在线游戏");
+      else if (oldVal === -1) {
+        if (Number(new Date()) - Number(localStorage.online) < 300000)
+          message.success("您已重新连接至在线游戏");
+        else {
+          message.info("游戏已结束");
+          gameStatus.value = 1;
+        }
+      }
     });
 
     // TODO: 玩家互动(Level 5)
 
-    //游戏逻辑
+    //TODO: 玩家名称
+
+    // TODO: 重连时计时器重置
+
+    // TODO: 并发消息
+
+
     const playerList: any[] = inject("playerList");
 
     const error = ref(false);
 
+    //载入其他玩家的数据信息
     if (reconnectInfoList.value.length > 0) {
       reconnectInfoList.value.sort((a, b) =>
         a.gameMsg.id === localStorage.userId ? -1 : 0
@@ -257,23 +279,21 @@ export default {
       { deep: true }
     );
 
-    const time = ref(500);
+    const time = reactive([5, 0, 0]);
+    let count = 0;
+    let timer = setInterval(() => {
+      if (time[2] > 0) time[2]--;
+      else if (time[1] > 0) {
+        time[1]--;
+        time[2] = 9;
+      } else {
+        time[0]--;
+        time[1] = 5;
+        time[2] = 9;
+      }
+    }, 1000);
 
     onMounted(() => {
-      // TODO: 计时器
-      // message.info(
-      //   defineComponent({
-
-      //     data() {
-      //       return { count: 300 };
-      //     },
-      //     methods: {
-      //       increment() {
-      //         this.count++;
-      //       },
-      //     },
-      //   })
-      // );
       document.onkeydown = function (e) {
         if (e.keyCode > 36 && e.keyCode < 41) {
           e.preventDefault();
@@ -413,6 +433,7 @@ export default {
       touchmove,
       touchend,
       error,
+      time,
     };
   },
 };
@@ -444,11 +465,16 @@ export default {
         transform: translateY(-50%);
       }
 
-      .quit {
+      .operation {
         position: absolute;
         right: 0;
         top: 50%;
         transform: translateY(-50%);
+
+        font: {
+          weight: 700;
+          size: 30px;
+        }
       }
     }
   }

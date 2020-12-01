@@ -99,7 +99,6 @@ export default {
             value.gameMsg = JSON.parse(value.gameMsg);
             return value;
           });
-          console.log(reconnectInfoList.value);
           router.push("/online");
           break;
       }
