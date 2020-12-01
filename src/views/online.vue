@@ -373,6 +373,8 @@ export default {
           toRef(p1, "score"),
           2
         );
+      } else {
+        return;
       }
       if (next !== null) {
         socket.send(

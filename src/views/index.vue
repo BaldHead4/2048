@@ -238,6 +238,7 @@ export default {
     let [startX, startY] = [0, 0];
     let [moveX, moveY] = [0, 0];
     function touchstart(e) {
+      e.preventDefault();
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
     }
@@ -264,6 +265,8 @@ export default {
         Math.abs(moveY - startY) >= Math.abs(startX - moveX)
       ) {
         move(blocks, difficulty.value, currentScore, 2, plus);
+      } else {
+        return;
       }
       locked = true;
     }
