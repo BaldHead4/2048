@@ -20,7 +20,7 @@
       <div class="container">
         <div class="head">
           <div class="title">2048</div>
-          <div class="operation" v-show="time[0] >= 0">
+          <div class="operation" v-show="time[0] >= 0 && gameStatus !== 1">
             {{ time[0] }}:{{ time[1] }}{{ time[2] }}
           </div>
         </div>
@@ -41,9 +41,9 @@
         <board :width="1000" :blocks="p4.status" />
       </div>
       <div class="usernames">
-        <div class="name">{{ p2.username }}</div>
-        <div class="name">{{ p3.username }}</div>
-        <div class="name">{{ p4.username }}</div>
+        <div class="p2">{{ p2.username }}</div>
+        <div class="p3">{{ p3.username }}</div>
+        <div class="p4">{{ p4.username }}</div>
       </div>
     </div>
   </div>
@@ -96,7 +96,8 @@ export default {
         reconnectInfoList.value = [];
         localStorage.online = -Infinity;
         message.success("游戏结束");
-        clearInterval(gc);
+        clearInterval(heartbeat);
+        clearInterval(timer);
       } else if (newVal === -1) message.warn("您已断线，正在重新连接");
       else if (oldVal === -1) {
         if (Number(new Date()) - Number(localStorage.online) < 300000)
@@ -109,13 +110,6 @@ export default {
     });
 
     // TODO: 玩家互动(Level 5)
-
-    //TODO: 玩家名称
-
-    // TODO: 重连时计时器重置
-
-    // TODO: 并发消息
-
 
     const playerList: any[] = inject("playerList");
 
@@ -139,6 +133,7 @@ export default {
       };
     }
 
+    //当前玩家的信息 
     const p1 = reactive<player>({
       status:
         reconnectInfoList.value.length > 0
@@ -158,6 +153,7 @@ export default {
           : onlineInfo.username,
     });
 
+    // 其余3名玩家的信息
     const p2 = reactive<player>({
       status:
         reconnectInfoList.value.length > 0
@@ -245,43 +241,44 @@ export default {
     watch(
       playerMove,
       () => {
-        if (playerMove.value.length < 1) return;
-        let top = playerMove.value[playerMove.value.length - 1];
-        if (top.handled) return;
-        let target = id_playerMap.get(top.id);
-        if (target.id === p1.id) {
-          playerMove.value = [];
-          return;
-        }
-        target.status = top.blocks;
+        // 消息队列，用于处理并发消息
+        while (playerMove.value.length > 0) {
+          let top = playerMove.value[0];
+          let target = id_playerMap.get(top.id);
+          if (top.handled || target.id === p1.id) {
+            playerMove.value.shift();
+            continue;
+          }
+          target.status = top.blocks;
 
-        target.score = top.score;
-        for (const iterator of top.mergedBlocks) {
-          mergeBlock(
-            toRef(target, "status"),
-            target.status.find((value) => value.id === iterator[0].id),
-            target.status.find((value) => value.id === iterator[1].id),
-            top.mergedBlocks.length,
-            toRef(target, "score"),
-            target.status.find((value) => value.id === iterator[2].id)
-          );
+          target.score = top.score;
+          for (const iterator of top.mergedBlocks) {
+            mergeBlock(
+              toRef(target, "status"),
+              target.status.find((value) => value.id === iterator[0].id),
+              target.status.find((value) => value.id === iterator[1].id),
+              top.mergedBlocks.length,
+              toRef(target, "score"),
+              target.status.find((value) => value.id === iterator[2].id)
+            );
+          }
+          if (top.generatedBlock)
+            createBlock(
+              toRef(target, "status"),
+              top.generatedBlock.position.x,
+              top.generatedBlock.position.y,
+              top.generatedBlock.status
+            );
+          top.handled = true;
+          playerMove.value.shift();
         }
-        if (top.generatedBlock)
-          createBlock(
-            toRef(target, "status"),
-            top.generatedBlock.position.x,
-            top.generatedBlock.position.y,
-            top.generatedBlock.status
-          );
-        top.handled = true;
-        playerMove.value = [];
       },
-      { deep: true }
+      { deep: true, immediate: true }
     );
 
+    // 计时器
     const time = reactive([5, 0, 0]);
-    let count = 0;
-    let timer = setInterval(() => {
+    let timing = () => {
       if (time[2] > 0) time[2]--;
       else if (time[1] > 0) {
         time[1]--;
@@ -291,9 +288,21 @@ export default {
         time[1] = 5;
         time[2] = 9;
       }
-    }, 1000);
+    };
+
+    // 重新连接时重置计时器
+    for (
+      let i = 0;
+      i < (Number(new Date()) - Number(localStorage.online)) / 1000;
+      i++
+    ) {
+      timing();
+    }
+
+    let timer = setInterval(timing, 1000);
 
     onMounted(() => {
+      // 桌面端操作
       document.onkeydown = function (e) {
         if (e.keyCode > 36 && e.keyCode < 41) {
           e.preventDefault();
@@ -322,7 +331,9 @@ export default {
       };
     });
 
-    let gc = setInterval(() => {
+
+    // 隔10s发送一个心跳包，防止丢包
+    let heartbeat = setInterval(() => {
       socket.send(
         JSON.stringify(<playerMove>{
           method: 1,
@@ -336,10 +347,6 @@ export default {
         })
       );
     }, 10000);
-
-    onUnmounted(() => {
-      clearInterval(gc);
-    });
 
     //处理滑动事件（移动端专属）
     let locked = false;
@@ -420,8 +427,6 @@ export default {
       locked = false;
     }
 
-    //TODO:排名变化时的动画
-
     return {
       p1,
       p2,
@@ -501,7 +506,7 @@ export default {
 @media screen and (max-width: 999.9px) {
   .wrapper {
     display: flow-root;
-    min-height: 650px;
+    min-height: 700px;
     min-width: 320px;
     display: flex;
     justify-content: center;
@@ -588,6 +593,18 @@ export default {
           margin: -90px;
         }
       }
+
+      .usernames {
+        width: 300px;
+        margin: auto;
+        display: flex;
+        align-items: center;
+        flex-direction: row;
+
+        div {
+          flex: 1;
+        }
+      }
     }
   }
 }
@@ -636,7 +653,7 @@ export default {
 
           .player {
             padding: 0 10px;
-            transition: all ease-in-out 0.2s;
+            transition: all ease-in-out 1s;
             position: relative;
             border-radius: 3px;
             .rank {
@@ -684,6 +701,39 @@ export default {
           top: -300px;
           bottom: -300px;
         }
+      }
+    }
+
+    .p2 {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(425px, -108px) translate(-50%, -50%);
+
+      font: {
+        size: 20px;
+      }
+    }
+
+    .p3 {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(425px, 92px) translate(-50%, -50%);
+
+      font: {
+        size: 20px;
+      }
+    }
+
+    .p4 {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(425px, 292px) translate(-50%, -50%);
+
+      font: {
+        size: 20px;
       }
     }
   }

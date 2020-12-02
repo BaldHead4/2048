@@ -115,8 +115,8 @@ export default {
     //对话框
     async function validateUsername(rule, value: string, vallback) {
       if (value === "") return Promise.reject("请输入昵称");
-      else if (!value.match(/^[a-zA-Z0-9_-]{1,8}$/g))
-        return Promise.reject("4到8位（字母，数字，下划线，减号）");
+      else if (!value.match(/^[A-Za-z0-9_\u4e00-\u9fa5]{1,6}$/g))
+        return Promise.reject("1到6位（汉字，字母，数字，下划线）");
       return Promise.resolve();
     }
     const modalVisible = ref(false);
@@ -243,7 +243,6 @@ export default {
     let [startX, startY] = [0, 0];
     let [moveX, moveY] = [0, 0];
     function touchstart(e) {
-      e.preventDefault();
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
     }
@@ -309,6 +308,7 @@ export default {
 
 <style lang="scss" scoped>
 .wrapper {
+  position: relative;
   background: url("/amam.webp");
   height: 100%;
   color: #776e65;
@@ -542,7 +542,7 @@ export default {
 }
 
 .desktopLayout {
-  min-height: 700px;
+  min-height: 800px;
   .container {
     width: 500px;
     .head {

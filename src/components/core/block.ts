@@ -41,10 +41,13 @@ export function mergeBlock(
       true,
       false
     );
+  let [id1, id2] = [b1.id, b2.id];
 
   setTimeout(() => {
-    if (b1) b1.visible = false;
-    if (b2) b2.visible = false;
+    if (!b1) b1 = blocks.value.find((value) => value.id === id1);
+    b1.visible = false;
+    if (!b2) b2 = blocks.value.find((value) => value.id === id2);
+    b2.visible = false;
     newBlock.visible = true;
     if (b1 || b2) score.value += (b1 ? b1.status : b2.status) * times;
   }, 100);
@@ -59,8 +62,7 @@ export function generateBlock(
   position: [number, number] = [
     Math.floor(Math.random() * 4),
     Math.floor(Math.random() * 4),
-  ],
-  val?: number
+  ]
 ) {
   if (difficulty === 1)
     return createBlock(blocks, <position>position[0], <position>position[1], 2);
@@ -88,8 +90,10 @@ export function move(
   );
   for (let i = 0; i < 4; i++) matrix[i] = new Array(4).fill(null);
   for (const iterator of blocks.value) {
-    if (!iterator.removed)
-      matrix[iterator.position.y][iterator.position.x] = iterator;
+    if (!iterator.removed) {
+      if (matrix[iterator.position.y][iterator.position.x] === null)
+        matrix[iterator.position.y][iterator.position.x] = iterator;
+    }
   }
   let stuck = true;
   switch (move) {

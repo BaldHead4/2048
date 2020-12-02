@@ -19,6 +19,7 @@
         : block.position.y * (58 + 10) + 10
     }px;
     `"
+      :blockid="block.id"
     >
       {{ block.status ? block.status : "" }}
     </div>
