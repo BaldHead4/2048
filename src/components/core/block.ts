@@ -86,7 +86,11 @@ export function move(
   let matrix: Array<Array<block | null>> = new Array(4);
   let merged: block[][] = [];
   blocks.value = blocks.value.filter(
-    (value) => !(value.removed && !value.visible)
+    (value) =>
+      !(
+        (value.removed && !value.visible) ||
+        (value.removed && Number(new Date()) - Number(value.id) > 500)
+      )
   );
   for (let i = 0; i < 4; i++) matrix[i] = new Array(4).fill(null);
   for (const iterator of blocks.value) {

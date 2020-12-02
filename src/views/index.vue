@@ -87,6 +87,7 @@ import md5 from "js-md5";
 import { block, player, position, reconnectInfo } from "../components/types";
 import { generateBlock, mergeBlock, move } from "../components/core/block";
 import { useForm } from "@ant-design-vue/use";
+import { message } from "ant-design-vue";
 
 export default {
   components: { board, UserOutlined },
@@ -132,6 +133,7 @@ export default {
     function getOnline(): void {
       validate()
         .then(() => {
+          message.info("正在寻找其他玩家，请您耐心等待");
           confirmLoading.value = true;
           localStorage.username = onlineInfo.username;
           localStorage.onlineDifficulty = onlineInfo.difficulty;
