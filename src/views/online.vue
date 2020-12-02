@@ -25,7 +25,7 @@
           </div>
         </div>
         <board
-          :width="1000"
+          :width="1070"
           :blocks="p1.status"
           :gameover="gameStatus === 1"
           buttonText="退出"
@@ -36,9 +36,9 @@
         />
       </div>
       <div class="right">
-        <board :width="1000" :blocks="p2.status" />
-        <board :width="1000" class="mid" :blocks="p3.status" />
-        <board :width="1000" :blocks="p4.status" />
+        <board :width="1070" :blocks="p2.status" />
+        <board :width="1070" class="mid" :blocks="p3.status" />
+        <board :width="1070" :blocks="p4.status" />
       </div>
       <div class="usernames">
         <div class="p2">{{ p2.username }}</div>
@@ -133,7 +133,7 @@ export default {
       };
     }
 
-    //当前玩家的信息 
+    //当前玩家的信息
     const p1 = reactive<player>({
       status:
         reconnectInfoList.value.length > 0
@@ -331,7 +331,6 @@ export default {
       };
     });
 
-
     // 隔10s发送一个心跳包，防止丢包
     let heartbeat = setInterval(() => {
       socket.send(
@@ -503,17 +502,19 @@ export default {
   }
 }
 
-@media screen and (max-width: 999.9px) {
+@media screen and (max-width: 1070px) {
   .wrapper {
     display: flow-root;
     min-height: 700px;
     min-width: 320px;
+    overflow: auto;
     display: flex;
     justify-content: center;
     align-items: center;
 
     .gui {
       flex: 1;
+      position: relative;
 
       .container {
         margin: auto;
@@ -598,6 +599,7 @@ export default {
         width: 300px;
         margin: auto;
         display: flex;
+        position: relative;
         align-items: center;
         flex-direction: row;
 
@@ -609,7 +611,7 @@ export default {
   }
 }
 
-@media screen and (min-width: 1000px) {
+@media screen and (min-width: 1070px) {
   .wrapper {
     min-height: 700px;
     .container {
@@ -632,12 +634,12 @@ export default {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-500px, -50%);
+      transform: translate(-550px, -50%);
 
       .scoreboard {
         background: rgb(187, 173, 160);
         border-radius: 5px;
-        width: 180px;
+        width: 230px;
         height: 180px;
 
         .title {

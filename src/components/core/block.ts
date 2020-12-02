@@ -41,13 +41,13 @@ export function mergeBlock(
       true,
       false
     );
-  let [id1, id2] = [b1.id, b2.id];
+  let [id1, id2] = [b1 ? b1.id : "", b2 ? b2.id : ""];
 
   setTimeout(() => {
     if (!b1) b1 = blocks.value.find((value) => value.id === id1);
-    b1.visible = false;
+    if (b1) b1.visible = false;
     if (!b2) b2 = blocks.value.find((value) => value.id === id2);
-    b2.visible = false;
+    if (b2) b2.visible = false;
     newBlock.visible = true;
     if (b1 || b2) score.value += (b1 ? b1.status : b2.status) * times;
   }, 100);
