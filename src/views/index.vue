@@ -234,6 +234,7 @@ export default {
             difficulty.value,
             currentScore,
             (e.keyCode - 36) as 1 | 2 | 3 | 4,
+            false,
             plus
           );
         }
@@ -258,22 +259,22 @@ export default {
         startX - moveX < -0 &&
         Math.abs(moveY - startY) < Math.abs(startX - moveX)
       ) {
-        move(blocks, difficulty.value, currentScore, 3, plus);
+        move(blocks, difficulty.value, currentScore, 3, false, plus);
       } else if (
         startX - moveX > 0 &&
         Math.abs(moveY - startY) < Math.abs(startX - moveX)
       ) {
-        move(blocks, difficulty.value, currentScore, 1, plus);
+        move(blocks, difficulty.value, currentScore, 1, false, plus);
       } else if (
         startY - moveY < -0 &&
         Math.abs(moveY - startY) >= Math.abs(startX - moveX)
       ) {
-        move(blocks, difficulty.value, currentScore, 4, plus);
+        move(blocks, difficulty.value, currentScore, 4, false, plus);
       } else if (
         startY - moveY > 0 &&
         Math.abs(moveY - startY) >= Math.abs(startX - moveX)
       ) {
-        move(blocks, difficulty.value, currentScore, 2, plus);
+        move(blocks, difficulty.value, currentScore, 2, false, plus);
       } else {
         return;
       }

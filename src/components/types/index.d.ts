@@ -8,6 +8,7 @@ export interface block {
   removed: boolean;
   status: number;
   id: number;
+  trapped: boolean
 }
 
 export interface player {
@@ -19,7 +20,7 @@ export interface player {
 
 export interface playerMove {
   id: string;
-  username: string,
+  username: string;
   score: number;
   blocks: block[];
   generatedBlock: block;
@@ -27,6 +28,7 @@ export interface playerMove {
   type?: 1;
   handled: boolean;
   method: 1;
+  perkTarget: string;
 }
 
 export interface reconnectInfo {

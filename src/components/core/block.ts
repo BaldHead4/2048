@@ -16,7 +16,8 @@ export function createBlock(
     merged,
     visible,
     removed: false,
-    id: Number(Number(new Date()) + "" + Math.random()),
+    id: Number(new Date()) + Math.random(),
+    trapped: false,
   });
   return blocks.value[blocks.value.length - 1];
 }
@@ -81,6 +82,7 @@ export function move(
   difficulty: number,
   score: Ref<number>,
   move: 1 | 2 | 3 | 4,
+  trapped: boolean = false,
   plus?: Ref<[number, number, number][]>
 ) {
   let matrix: Array<Array<block | null>> = new Array(4);
@@ -126,6 +128,7 @@ export function move(
               visible: false,
               removed: false,
               merged: true,
+              trapped: false,
               id: NaN,
             };
           } else matrix[matrix[i][j].position.y][j] = matrix[i][j];
@@ -161,6 +164,7 @@ export function move(
               merged: true,
               removed: false,
               visible: false,
+              trapped: false,
               id: NaN,
             };
           } else matrix[matrix[i][j].position.y][j] = matrix[i][j];
@@ -196,6 +200,7 @@ export function move(
               visible: false,
               removed: false,
               merged: true,
+              trapped: false,
               id: NaN,
             };
           } else matrix[i][matrix[i][j].position.x] = matrix[i][j];
@@ -231,6 +236,7 @@ export function move(
               merged: true,
               removed: false,
               visible: false,
+              trapped: false,
               id: NaN,
             };
           } else matrix[i][matrix[i][j].position.x] = matrix[i][j];
@@ -251,13 +257,23 @@ export function move(
       if (matrix[i][j] === null) blank.push([i, j]);
     }
   }
-  let [y, x] = blank[Math.floor(Math.random() * blank.length)];
-  let block = generateBlock(blocks, difficulty, [x, y]);
+  let block = null;
+  if (blank.length > 0) {
+    let [y, x] = blank.splice(Math.floor(Math.random() * blank.length), 1)[0];
+    block = generateBlock(blocks, difficulty, [x, y]);
+  }
   let add = 0;
+  let perk = false;
   for (const iterator of merged) {
     iterator.push(
       mergeBlock(blocks, iterator[0], iterator[1], merged.length, score)
     );
+    if (trapped) {
+      let time = [0.5, 2][Math.floor(Math.random() * 2)];
+      iterator[2].trapped = true;
+      iterator[2].status *= time;
+    }
+    if (iterator[2].status > 100) perk = true;
     add += iterator[0].status;
   }
   if (add > 0 && plus) {
@@ -270,5 +286,6 @@ export function move(
     blocks: blocks.value.filter((value) => !(value.removed && !value.visible)),
     mergedBlocks: merged,
     generatedBlock: block,
+    perk,
   };
 }

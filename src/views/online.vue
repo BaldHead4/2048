@@ -238,6 +238,8 @@ export default {
       );
     }
 
+    let trapped = false;
+
     watch(
       playerMove,
       () => {
@@ -250,7 +252,6 @@ export default {
             continue;
           }
           target.status = top.blocks;
-
           target.score = top.score;
           for (const iterator of top.mergedBlocks) {
             mergeBlock(
@@ -269,6 +270,12 @@ export default {
               top.generatedBlock.position.y,
               top.generatedBlock.status
             );
+          if (top.perkTarget === p1.id && !trapped) {
+            trapped = true;
+            message.info(
+              `${id_playerMap.get(top.id).username} 给您设置了一个陷阱 `
+            );
+          }
           top.handled = true;
           playerMove.value.shift();
         }
@@ -311,9 +318,18 @@ export default {
             toRef(p1, "status"),
             onlineInfo.difficulty,
             toRef(p1, "score"),
-            (e.keyCode - 36) as 1 | 2 | 3 | 4
+            (e.keyCode - 36) as 1 | 2 | 3 | 4,
+            trapped
           );
           if (next !== null) {
+            let perkTarget = null;
+            if (next.perk) {
+              perkTarget = [p2.id, p3.id, p4.id][Math.floor(Math.random() * 3)];
+              message.success(
+                `您给 ${id_playerMap.get(perkTarget).username} 设下了一个陷阱`
+              );
+            }
+            if (next.mergedBlocks.length > 0) trapped = false;
             socket.send(
               JSON.stringify(<playerMove>{
                 method: 1,
@@ -324,6 +340,7 @@ export default {
                 blocks: next.blocks,
                 mergedBlocks: next.mergedBlocks,
                 generatedBlock: next.generatedBlock,
+                perkTarget,
               })
             );
           }
@@ -343,6 +360,7 @@ export default {
           blocks: p1.status,
           mergedBlocks: [],
           generatedBlock: null,
+          perkTarget: null,
         })
       );
     }, 10000);
@@ -370,7 +388,8 @@ export default {
           toRef(p1, "status"),
           onlineInfo.difficulty,
           toRef(p1, "score"),
-          3
+          3,
+          trapped
         );
       } else if (
         startX - moveX > 0 &&
@@ -380,7 +399,8 @@ export default {
           toRef(p1, "status"),
           onlineInfo.difficulty,
           toRef(p1, "score"),
-          1
+          1,
+          trapped
         );
       } else if (
         startY - moveY < 0 &&
@@ -390,7 +410,8 @@ export default {
           toRef(p1, "status"),
           onlineInfo.difficulty,
           toRef(p1, "score"),
-          4
+          4,
+          trapped
         );
       } else if (
         startY - moveY > 0 &&
@@ -400,12 +421,21 @@ export default {
           toRef(p1, "status"),
           onlineInfo.difficulty,
           toRef(p1, "score"),
-          2
+          2,
+          trapped
         );
       } else {
         return;
       }
       if (next !== null) {
+        let perkTarget = null;
+        if (next.perk) {
+          perkTarget = [p2.id, p3.id, p4.id][Math.floor(Math.random() * 3)];
+          message.success(
+            `您给 ${id_playerMap.get(perkTarget).username} 设下了一个陷阱`
+          );
+        }
+        if (next.mergedBlocks.length > 0) trapped = false;
         socket.send(
           JSON.stringify(<playerMove>{
             method: 1,
@@ -416,6 +446,7 @@ export default {
             blocks: next.blocks,
             mergedBlocks: next.mergedBlocks,
             generatedBlock: next.generatedBlock,
+            perkTarget,
           })
         );
       }

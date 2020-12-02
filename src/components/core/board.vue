@@ -35,6 +35,7 @@
       :block="block"
       :key="block.id"
       :width="width"
+      v-model:trapped="block.trapped"
     />
   </div>
 </template>

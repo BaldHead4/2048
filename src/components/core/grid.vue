@@ -4,9 +4,9 @@
     :class="`wrap ${clientWidth >= width ? 'desktop' : 'mobile'}`"
   >
     <div
-      :class="`grid ${block.merged ? 'merged' : 'created'} status${
-        block.status > 2048 ? 'Super' : block.status
-      }`"
+      :class="`grid ${
+        trapped ? 'trapped' : block.merged ? 'merged' : 'created'
+      } status${block.status > 2048 ? 'Super' : block.status}`"
       :style="`
     left: ${
       clientWidth > width
@@ -27,14 +27,26 @@
 </template>
 
 <script lang="ts">
-import { inject, ref } from "vue";
+import { inject, ref, toRef, watch } from "vue";
 export default {
   props: {
     block: Object,
     width: Number,
+    trapped: Boolean,
   },
-  setup() {
+  setup(props, ctx) {
     const clientWidth = inject("clientWidth");
+
+    // watch(
+    //   () => props.trapped,
+    //   () => {
+    //     if (props.trapped) {
+    //       setTimeout(() => {
+    //         ctx.emit("update:trapped", false);
+    //       }, 300);
+    //     }
+    //   }
+    // );
 
     return {
       clientWidth,
@@ -64,6 +76,29 @@ $mobileGridSize: 58px;
   }
   color: #776e65;
   border-radius: 3px;
+}
+
+@keyframes trap {
+  0% {
+    -webkit-transform: scale(0);
+    -moz-transform: scale(0);
+    transform: scale(0);
+  }
+  25% {
+    -webkit-transform: scale(9);
+    -moz-transform: scale(9);
+    transform: scale(9);
+  }
+  75% {
+    -webkit-transform: scale(0.5);
+    -moz-transform: scale(0.5);
+    transform: scale(0.5);
+  }
+  100% {
+    -webkit-transform: scale(1);
+    -moz-transform: scale(1);
+    transform: scale(1);
+  }
 }
 
 @keyframes merge {
@@ -98,6 +133,14 @@ $mobileGridSize: 58px;
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.trapped {
+  animation: {
+    name: trap;
+    duration: 0.2s;
+  }
+  animation-play-state: running;
 }
 
 .created {
