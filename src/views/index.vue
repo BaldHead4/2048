@@ -60,6 +60,7 @@
           <a-input
             v-model:value="onlineInfo.username"
             placeholder="请输入您的昵称"
+            :disabled="confirmLoading"
           >
             <template #prefix><user-outlined type="user" /></template>
           </a-input>
@@ -68,6 +69,7 @@
           <a-radio-group
             v-model:value="onlineInfo.difficulty"
             button-style="solid"
+            :disabled="confirmLoading"
           >
             <a-radio-button :value="1"> 正常 </a-radio-button>
             <a-radio-button :value="2"> 困难 </a-radio-button>
